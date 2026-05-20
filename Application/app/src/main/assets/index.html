@@ -33,11 +33,19 @@
         .progress-fill { width: 0%; height: 100%; background: #10b981; transition: width 0.2s; }
         .stats { background: #f1f5f9; padding: 12px; border-radius: 18px; margin-top: 20px; text-align: center; font-size: 0.9rem; }
         .guide { background: #fef9c3; border-right: 5px solid #eab308; padding: 15px; border-radius: 16px; margin-top: 20px; }
+        .guide p { margin-bottom: 8px; }
         .qr-container { text-align: center; margin-top: 15px; padding: 15px; background: white; border-radius: 16px; }
         .qr-container p { margin-bottom: 10px; color: #4a5568; font-weight: bold; }
-        #qrcode { display: flex; justify-content: center; align-items: center; }
-        #qrcode img { margin: 0 auto; border-radius: 10px; }
+        #qrcode { display: flex; justify-content: center; align-items: center; min-height: 180px; }
+        #qrcode img { margin: 0 auto; border-radius: 10px; max-width: 100%; height: auto; }
+        .store-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
+        .store-btn { display: inline-flex; align-items: center; gap: 8px; background: #1f2937; color: white; text-decoration: none; padding: 10px 20px; border-radius: 50px; font-weight: bold; transition: transform 0.2s; }
+        .store-btn:hover { transform: scale(1.05); }
+        .myket-btn { background: #3b82f6; }
+        .bazaar-btn { background: #10b981; }
+        .store-icon { font-size: 1.3rem; }
         .footer { text-align: center; margin-top: 30px; color: white; font-size: 0.8rem; }
+        .note-text { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
         @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
     </style>
     <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
@@ -47,7 +55,7 @@
     <div class="header">
         <h1>📁 همسپار | اشتراک‌گذار فایل</h1>
         <p>انتقال فایل بدون نصب برنامه روی دستگاه گیرنده – فقط مرورگر</p>
-        <p style="font-size:0.9rem; background:rgba(0,0,0,0.3); display:inline-block; padding:5px 15px; border-radius:50px;">✅ بدون نیاز به اینترنت | فقط وای‌فای یا هات‌اسپات مشترک</p>
+        <p style="font-size:0.9rem; background:rgba(0,0,0,0.3); display:inline-block; padding:5px 15px; border-radius:50px;">✅ بدون نیاز به اینترنت</p>
         <div class="my-info" id="myInfo"></div>
     </div>
 
@@ -75,30 +83,35 @@
         </div>
 
         <div class="card">
-            <h2>ℹ️ راهنما</h2>
+            <h2>ℹ️ راهنمای سریع</h2>
             <div class="guide">
-                <p>✅ <strong>نحوه اتصال:</strong></p>
-                <p>1- هات اسپات گوشی را روشن کن</p>
-                <p>2- گوشی دوم یا کامپیوتر را به همین هات اسپات وصل کن</p>
-                <p>3- روی دکمه «شروع سرور» بزن</p>
-                <p>4- در گوشی دوم یا کامپیوتر، آدرس یا QR کد را در مرورگر باز کن</p>
-                <p>5- در یک گوشی فایل آپلود شود ← در گوشی دیگر دانلود شود (یا برعکس)</p>
-                <p>6- راه جایگزین: هر دو گوشی به یک وای‌فای مشترک متصل شوند</p>
-                <p>7- می‌تونی چند تا گوشی و کامپیوتر رو به وای فای وصل کنی و فایل رو همزمان با همه شون به اشتراک بذاری</p>
-
-                <p style="margin-top:12px;">🔗 <strong>آدرس سرور:</strong> <span id="serverUrl" style="color:#2563eb; word-break:break-all;"></span></p>
-                <button id="copyUrlBtn" style="margin-top:8px; background:#3b82f6; border:none; padding:6px 12px; border-radius:30px; color:white;">📋 کپی لینک</button>
-                <p style="margin-top:12px;">📱 <a href="#" id="openLocalBrowser" style="color:#2563eb;">باز کردن در همین گوشی</a></p>
+                <p>1️⃣ گوشی دیگر را به وای‌فای همین گوشی وصل کن</p>
+                <p>2️⃣ آدرس سرور را در مرورگر گوشی دیگر وارد کن یا QR را اسکن کن</p>
+                <p>3️⃣ در یک گوشی فایل آپلود شود در گوشی دیگر دانلود شود</p>
             </div>
 
             <div class="qr-container">
-                <p>📱 اسکن QR کد برای اتصال سریع:</p>
+                <p>📱 اسکن QR برای اتصال سریع</p>
                 <div id="qrcode"></div>
+                <p class="note-text" id="fallbackNote" style="display:none; color:#ef4444;">⚠️ در صورت عدم نمایش QR، از لینک زیر استفاده کنید</p>
             </div>
 
-            <div class="guide" style="margin-top:10px; background:#e0f2fe; border-right-color:#0284c7;">
-                <p>⚠️ <strong>نکته مهم:</strong> اگر آدرس کار نکرد، آی‌پی را از تنظیمات وای‌فای گوشی میزبان پیدا کنید (مثلاً 192.168.43.1:8080).</p>
-                <p>💡 دستگاه گیرنده باید در همان شبکه (وای‌فای یا هات‌اسپات) باشد، نیازی به اینترنت نیست.</p>
+            <div style="margin-top:12px; text-align:center;">
+                <p>🔗 <strong>آدرس سرور:</strong> <span id="serverUrl" style="color:#2563eb; word-break:break-all; font-size:0.85rem;"></span></p>
+                <button id="copyUrlBtn" style="margin-top:8px; background:#3b82f6; border:none; padding:8px 16px; border-radius:30px; color:white; cursor:pointer;">📋 کپی لینک</button>
+            </div>
+
+            <div style="margin-top:20px;">
+                <p style="text-align:center; margin-bottom:10px;">📲 دانلود اپلیکیشن همسپار</p>
+                <div class="store-buttons">
+                    <a href="https://myket.ir/app/com.codestoon.hamsepar" class="store-btn myket-btn" target="_blank">
+                        <span class="store-icon">🛍️</span> مایکت
+                    </a>
+                    <a href="https://cafebazaar.ir/app/com.codestoon.hamsepar" class="store-btn bazaar-btn" target="_blank">
+                        <span class="store-icon">📦</span> بازار
+                    </a>
+                </div>
+                <p class="note-text" style="text-align:center;">نصب نسخه اندروید برای تجربه بهتر</p>
             </div>
         </div>
     </div>
@@ -109,7 +122,6 @@
     let refreshInterval;
     let deleteProtection = false;
 
-    // ========== نام یکتا و سیستم عامل ==========
     function getOrCreateUniqueName() {
         let uniqueName = localStorage.getItem('uniqueUserName');
         if (!uniqueName) {
@@ -133,27 +145,24 @@
     }
 
     function detectOS() {
-        const userAgent = navigator.userAgent;
-        if (/windows/i.test(userAgent)) return "Windows";
-        if (/mac/i.test(userAgent)) return "macOS";
-        if (/linux/i.test(userAgent)) return "Linux";
-        if (/android/i.test(userAgent)) return "Android";
-        if (/iphone|ipad|ipod/i.test(userAgent)) return "iOS";
+        const ua = navigator.userAgent;
+        if (/windows/i.test(ua)) return "Windows";
+        if (/mac/i.test(ua)) return "macOS";
+        if (/linux/i.test(ua)) return "Linux";
+        if (/android/i.test(ua)) return "Android";
+        if (/iphone|ipad|ipod/i.test(ua)) return "iOS";
         return "سایر";
     }
 
     const MY_UNIQUE_NAME = getOrCreateUniqueName();
     const MY_OS = detectOS();
-
     document.getElementById('myInfo').innerHTML = `👤 ${MY_UNIQUE_NAME} | 💻 ${MY_OS}`;
 
-    // ========== تابع بارگذاری اطلاعات از سرور ==========
     async function loadData() {
         try {
             const url = `/api/files?clientName=${encodeURIComponent(MY_UNIQUE_NAME)}&clientOS=${encodeURIComponent(MY_OS)}&_=${Date.now()}`;
             const res = await fetch(url);
             const data = await res.json();
-
             deleteProtection = data.protectDelete === true;
 
             const fileListDiv = document.getElementById('fileList');
@@ -204,38 +213,23 @@
         return div.innerHTML;
     }
 
-    // ========== حذف فایل ==========
     async function deleteFilePrompt(fileName) {
-        let password = '';
-        if (deleteProtection) {
-            // رمز در صورت نیاز فعال شود
-        }
-        const body = 'fileName=' + encodeURIComponent(fileName) + (password ? '&password=' + encodeURIComponent(password) : '');
+        const body = 'fileName=' + encodeURIComponent(fileName);
         const res = await fetch('/delete', {
             method: 'POST',
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body
         });
-        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.');
+        if (res.status === 401) alert('مجاز به پاک کردن نیستید');
         else loadData();
     }
 
     document.getElementById('deleteAllBtn').addEventListener('click', async () => {
-        let password = '';
-        if (deleteProtection) {
-            // رمز در صورت نیاز فعال شود
-        }
-        const body = password ? 'password=' + encodeURIComponent(password) : '';
-        const res = await fetch('/delete-all', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body
-        });
-        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.');
+        const res = await fetch('/delete-all', { method: 'POST' });
+        if (res.status === 401) alert('مجاز به پاک کردن نیستید');
         else loadData();
     });
 
-    // ========== آپلود فایل ==========
     async function uploadFiles(files) {
         for (const file of files) {
             const formData = new FormData();
@@ -268,7 +262,6 @@
         }
     }
 
-    // ========== رویدادهای آپلود ==========
     const uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput');
     uploadArea.addEventListener('click', () => fileInput.click());
     fileInput.addEventListener('change', (e) => uploadFiles(e.target.files));
@@ -283,25 +276,27 @@
         uploadFiles(e.dataTransfer.files);
     });
 
-    // ========== راهنما و QR ==========
-    const serverUrlSpan = document.getElementById('serverUrl');
     const currentUrl = window.location.href;
-    serverUrlSpan.innerText = currentUrl;
+    document.getElementById('serverUrl').innerText = currentUrl;
 
     document.getElementById('copyUrlBtn').addEventListener('click', () => {
         navigator.clipboard.writeText(currentUrl);
         alert('✅ لینک کپی شد');
     });
 
-    document.getElementById('openLocalBrowser').addEventListener('click', (e) => {
-        e.preventDefault();
-        window.location.href = currentUrl;
-    });
-
-    // ساخت QR کد
+    // تولید QR با fallback برای مرورگر موبایل
     function generateQRCode() {
         const qrcodeDiv = document.getElementById('qrcode');
-        qrcodeDiv.innerHTML = ''; // پاک کردن محتوای قبلی
+        qrcodeDiv.innerHTML = '';
+
+        // بررسی وجود کتابخانه QRCode
+        if (typeof QRCode === 'undefined') {
+            console.error('کتابخانه QR لود نشد');
+            qrcodeDiv.innerHTML = '<p style="color:#ef4444;">❌ خطا در بارگذاری QR</p><p style="font-size:12px;">از لینک دستی استفاده کنید</p>';
+            document.getElementById('fallbackNote').style.display = 'block';
+            return;
+        }
+
         try {
             new QRCode(qrcodeDiv, {
                 text: currentUrl,
@@ -311,16 +306,25 @@
                 colorLight: "#ffffff",
                 correctLevel: QRCode.CorrectLevel.H
             });
+
+            // بررسی اینکه آیا QR واقعاً تولید شده یا خیر
+            setTimeout(() => {
+                if (qrcodeDiv.innerHTML === '' || qrcodeDiv.querySelector('img') === null) {
+                    throw new Error('QR تولید نشد');
+                }
+            }, 100);
+
         } catch (error) {
             console.error('خطا در ساخت QR:', error);
-            qrcodeDiv.innerHTML = '<p style="color:red;">خطا در تولید QR کد</p>';
+            qrcodeDiv.innerHTML = '<p style="color:#ef4444;">❌ امکان تولید QR در این مرورگر</p><p style="font-size:12px;">از لینک دستی استفاده کنید</p>';
+            document.getElementById('fallbackNote').style.display = 'block';
         }
     }
 
-    // تاخیر در ساخت QR برای اطمینان از لود کتابخانه
-    setTimeout(generateQRCode, 100);
+    // تاخیر برای اطمینان از لود کامل کتابخانه
+    setTimeout(generateQRCode, 200);
 
-    // ========== شروع ==========
+    // بارگذاری اولیه
     loadData();
     refreshInterval = setInterval(loadData, 2500);
 </script>
