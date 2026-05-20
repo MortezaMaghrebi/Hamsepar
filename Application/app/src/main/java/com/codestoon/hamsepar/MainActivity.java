@@ -640,17 +640,53 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if ("/delete".equals(uri) && Method.POST.equals(session.getMethod())) {
+                // پشتیبانی از هر دو نوع ارسال داده (FormData و URL-encoded)
                 Map<String, String> params2 = session.getParms();
                 String fileName = params2.get("fileName");
+
+                // اگر fileName از طریق پارامترهای عادی نیامد، از body بخوان
+                if (fileName == null || fileName.isEmpty()) {
+                    try {
+                        Map<String, String> files = new HashMap<>();
+                        session.parseBody(files);
+                        // بررسی در پارامترهای body
+                        if (files.containsKey("fileName")) {
+                            fileName = files.get("fileName");
+                        }
+                        // بررسی در session parameters بعد از parseBody
+                        Map<String, String> bodyParams = session.getParms();
+                        if (fileName == null && bodyParams.containsKey("fileName")) {
+                            fileName = bodyParams.get("fileName");
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+
                 String providedPass = params2.get("password");
+                if (providedPass == null) {
+                    try {
+                        Map<String, String> files = new HashMap<>();
+                        session.parseBody(files);
+                        if (files.containsKey("password")) {
+                            providedPass = files.get("password");
+                        }
+                    } catch (Exception e) {}
+                }
+
                 if (protectDelete && (providedPass == null || !providedPass.equals(password))) {
                     return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json", "{\"error\":\"رمز اشتباه است\"}");
                 }
-                if (fileName != null) {
-                    new File(rootDir, fileName).delete();
-                    return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+                if (fileName != null && !fileName.isEmpty()) {
+                    File fileToDelete = new File(rootDir, fileName);
+                    if (fileToDelete.exists()) {
+                        fileToDelete.delete();
+                        return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+                    } else {
+                        return newFixedLengthResponse(Response.Status.NOT_FOUND, "application/json", "{\"error\":\"فایل یافت نشد\"}");
+                    }
                 }
-                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "نام فایل ارسال نشده");
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "application/json", "{\"error\":\"نام فایل ارسال نشده\"}");
             }
 
             if ("/delete-all".equals(uri) && Method.POST.equals(session.getMethod())) {

@@ -2,120 +2,684 @@
 <html lang="fa" dir="rtl">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>همسپار - اشتراک فایل</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes, viewport-fit=cover">
+    <title>همسپار | اشتراک‌گذاری فایل بدون اینترنت</title>
+    <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
     <style>
-        * { margin:0; padding:0; box-sizing: border-box; }
-        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; min-height: 100vh; }
-        .container { max-width: 1200px; margin: 0 auto; }
-        .header { text-align: center; color: white; margin-bottom: 30px; }
-        .my-info { background: rgba(255,255,255,0.2); border-radius: 50px; padding: 8px 16px; display: inline-block; margin-top: 10px; font-size: 0.9rem; }
-        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 25px; }
-        .card { background: rgba(255,255,255,0.95); border-radius: 25px; padding: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); transition: transform 0.2s; }
-        .card:hover { transform: translateY(-5px); }
-        .card h2 { color: #4a5568; border-bottom: 3px solid #667eea; display: inline-block; padding-bottom: 8px; margin-bottom: 20px; }
-        .upload-area { border: 2px dashed #667eea; border-radius: 20px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: #f8f9ff; }
-        .upload-area:hover { background: #eef2ff; border-color: #764ba2; }
-        .upload-area.drag-over { background: #e0e7ff; border-color: #4c51bf; }
-        .file-list, .client-list { max-height: 400px; overflow-y: auto; }
-        .file-item { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; margin: 8px 0; border-radius: 15px; flex-wrap: wrap; }
-        .file-name { flex: 2; word-break: break-all; font-weight: 500; }
-        .file-size { font-size: 0.75rem; color: #4a5568; margin: 0 10px; }
-        .client-item { background: #f1f5f9; padding: 12px; margin: 8px 0; border-radius: 15px; }
-        .client-name { font-weight: bold; color: #2d3748; font-size: 1rem; margin-bottom: 5px; }
-        .client-ip { font-size: 0.7rem; color: #718096; direction: ltr; text-align: left; font-family: monospace; margin-bottom: 4px; }
-        .client-os { font-size: 0.7rem; color: #4a5568; background: #e2e8f0; display: inline-block; padding: 2px 8px; border-radius: 12px; margin-top: 4px; }
-        .btn-download, .btn-delete { border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-left: 6px; text-decoration: none; display: inline-block; }
-        .btn-download { background: #10b981; color: white; }
-        .btn-delete { background: #ef4444; color: white; }
-        .btn-delete-all { background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-weight: bold; margin-top: 15px; width: 100%; }
-        .progress-bar { width: 100%; height: 6px; background: #ddd; border-radius: 3px; margin-top: 15px; display: none; overflow: hidden; }
-        .progress-fill { width: 0%; height: 100%; background: #10b981; transition: width 0.2s; }
-        .stats { background: #f1f5f9; padding: 12px; border-radius: 18px; margin-top: 20px; text-align: center; font-size: 0.9rem; }
-        .guide { background: #fef9c3; border-right: 5px solid #eab308; padding: 15px; border-radius: 16px; margin-top: 20px; }
-        .guide p { margin-bottom: 8px; }
-        .qr-container { text-align: center; margin-top: 15px; padding: 15px; background: white; border-radius: 16px; }
-        .qr-container p { margin-bottom: 10px; color: #4a5568; font-weight: bold; }
-        #qrImage { width: 180px; height: 180px; margin: 0 auto; display: block; border-radius: 10px; }
-        .store-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
-        .store-btn { display: inline-flex; align-items: center; gap: 8px; background: #1f2937; color: white; text-decoration: none; padding: 10px 20px; border-radius: 50px; font-weight: bold; transition: transform 0.2s; }
-        .store-btn:hover { transform: scale(1.05); }
-        .myket-btn { background: #3b82f6; }
-        .bazaar-btn { background: #10b981; }
-        .store-icon { font-size: 1.3rem; }
-        .footer { text-align: center; margin-top: 30px; color: white; font-size: 0.8rem; }
-        .note-text { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
-        .empty-message { color: #6b7280; text-align: center; padding: 20px; }
-        .premium-badge { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-right: 10px; }
-        @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Vazirmatn', 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #fef3c7 0%, #fde68a 25%, #fcd34d 50%, #fbbf24 75%, #f59e0b 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        /* افکت حباب‌های طلایی متحرک */
+        .bubbles {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 0;
+            overflow: hidden;
+        }
+
+        .bubble {
+            position: absolute;
+            background: radial-gradient(circle, rgba(255,215,0,0.4), rgba(255,165,0,0.1));
+            border-radius: 50%;
+            animation: floatUp 6s infinite ease-in-out;
+            backdrop-filter: blur(2px);
+        }
+
+        @keyframes floatUp {
+            0% {
+                transform: translateY(100vh) scale(0);
+                opacity: 0;
+            }
+            10% {
+                opacity: 0.6;
+            }
+            90% {
+                opacity: 0.3;
+            }
+            100% {
+                transform: translateY(-100vh) scale(1.5);
+                opacity: 0;
+            }
+        }
+
+        /* افکت برق زدن */
+        @keyframes sparkle {
+            0%, 100% { text-shadow: 0 0 0px rgba(255,215,0,0); }
+            50% { text-shadow: 0 0 20px rgba(255,215,0,0.5); }
+        }
+
+        @keyframes glow {
+            0%, 100% { box-shadow: 0 5px 15px rgba(0,0,0,0.1); }
+            50% { box-shadow: 0 8px 25px rgba(245,158,11,0.3); }
+        }
+
+        .container {
+            max-width: 1400px;
+            margin: 0 auto;
+            position: relative;
+            z-index: 1;
+        }
+
+        /* هدر */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+            animation: fadeInDown 0.8s ease;
+        }
+
+        .header h1 {
+            font-size: 3rem;
+            font-weight: 900;
+            background: linear-gradient(135deg, #b45309, #d97706, #f59e0b, #fbbf24);
+            -webkit-background-clip: text;
+            background-clip: text;
+            color: transparent;
+            text-shadow: none;
+            margin-bottom: 12px;
+            animation: sparkle 2s infinite;
+        }
+
+        .header p {
+            color: #78350f;
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .badge-group {
+            display: flex;
+            gap: 12px;
+            justify-content: center;
+            margin-top: 16px;
+            flex-wrap: wrap;
+        }
+
+        .badge {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(5px);
+            padding: 8px 18px;
+            border-radius: 100px;
+            font-size: 0.8rem;
+            color: #92400e;
+            font-weight: 600;
+            border: 1px solid rgba(245, 158, 11, 0.5);
+        }
+
+        .my-info {
+            background: linear-gradient(135deg, #fff7ed, #fffbeb);
+            border-radius: 100px;
+            padding: 8px 24px;
+            display: inline-block;
+            margin-top: 16px;
+            font-size: 0.85rem;
+            color: #d97706;
+            font-weight: 600;
+            border: 1px solid #fbbf24;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+        }
+
+        /* گرید کارت‌ها */
+        .grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 24px;
+            margin-bottom: 30px;
+        }
+
+        /* کارت‌ها با افکت شیشه‌ای روشن */
+        .card {
+            background: rgba(255, 255, 255, 0.85);
+            backdrop-filter: blur(12px);
+            border-radius: 32px;
+            padding: 24px;
+            border: 1px solid rgba(245, 158, 11, 0.3);
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            animation: fadeInUp 0.6s ease backwards;
+            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.08);
+        }
+
+        .card:hover {
+            transform: translateY(-8px);
+            border-color: #f59e0b;
+            box-shadow: 0 20px 35px rgba(245, 158, 11, 0.2);
+            animation: glow 1s infinite;
+        }
+
+        .card:nth-child(1) { animation-delay: 0.1s; }
+        .card:nth-child(2) { animation-delay: 0.2s; }
+        .card:nth-child(3) { animation-delay: 0.3s; }
+        .card:nth-child(4) { animation-delay: 0.4s; }
+
+        .card h2 {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #78350f;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding-bottom: 12px;
+            border-bottom: 2px solid #fbbf24;
+        }
+
+        /* منطقه آپلود */
+        .upload-area {
+            border: 2px dashed #fbbf24;
+            border-radius: 24px;
+            padding: 35px 20px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s;
+            background: rgba(253, 230, 138, 0.3);
+        }
+
+        .upload-area:hover {
+            border-color: #f59e0b;
+            background: rgba(253, 230, 138, 0.5);
+            transform: scale(1.02);
+        }
+
+        .upload-area.drag-over {
+            border-color: #d97706;
+            background: rgba(253, 230, 138, 0.6);
+            transform: scale(1.02);
+        }
+
+        .upload-icon {
+            font-size: 48px;
+            margin-bottom: 12px;
+        }
+
+        /* لیست فایل‌ها - طراحی فشرده */
+        .file-list {
+            max-height: 400px;
+            overflow-y: auto;
+            padding-right: 4px;
+        }
+
+        .file-list::-webkit-scrollbar {
+            width: 6px;
+        }
+
+        .file-list::-webkit-scrollbar-track {
+            background: #fef3c7;
+            border-radius: 10px;
+        }
+
+        .file-list::-webkit-scrollbar-thumb {
+            background: #f59e0b;
+            border-radius: 10px;
+        }
+
+        /* آیتم فایل با ارتفاع کم */
+        .file-item {
+            background: white;
+            border-radius: 16px;
+            padding: 10px 14px;
+            margin-bottom: 10px;
+            transition: all 0.2s;
+            border: 1px solid #fde68a;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .file-item:hover {
+            border-color: #f59e0b;
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.15);
+            transform: translateX(-4px);
+        }
+
+        .file-info {
+            flex: 2;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-wrap: wrap;
+            min-width: 0;
+        }
+
+        .file-name {
+            font-weight: 600;
+            color: #451a03;
+            word-break: break-all;
+            white-space: normal;
+            line-height: 1.3;
+            font-size: 0.85rem;
+            flex: 2;
+            min-width: 120px;
+        }
+
+        .file-name[dir="ltr"] {
+            direction: ltr;
+            text-align: left;
+            unicode-bidi: embed;
+        }
+
+        .file-name[dir="rtl"] {
+            direction: rtl;
+            text-align: right;
+            unicode-bidi: embed;
+        }
+
+        .file-icon {
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .file-size {
+            font-size: 0.65rem;
+            color: #92400e;
+            background: #fef3c7;
+            padding: 3px 10px;
+            border-radius: 20px;
+            white-space: nowrap;
+            flex-shrink: 0;
+        }
+
+        .file-actions {
+            display: flex;
+            gap: 6px;
+            flex-shrink: 0;
+        }
+
+        .btn-download, .btn-delete {
+            border: none;
+            padding: 6px 12px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 0.7rem;
+            font-weight: 600;
+            text-decoration: none;
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            transition: all 0.2s;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+
+        .btn-download {
+            background: linear-gradient(135deg, #10b981, #059669);
+            color: white;
+        }
+
+        .btn-download:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(16, 185, 129, 0.4);
+        }
+
+        .btn-delete {
+            background: linear-gradient(135deg, #ef4444, #dc2626);
+            color: white;
+        }
+
+        .btn-delete:hover {
+            transform: scale(1.05);
+            box-shadow: 0 3px 10px rgba(239, 68, 68, 0.4);
+        }
+
+        .btn-delete-all {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            color: white;
+            border: none;
+            padding: 10px 18px;
+            border-radius: 40px;
+            cursor: pointer;
+            font-weight: 700;
+            margin-top: 16px;
+            width: 100%;
+            transition: all 0.2s;
+            font-family: 'Vazirmatn', sans-serif;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .btn-delete-all:hover {
+            transform: scale(1.02);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        /* کاربران متصل */
+        .client-item {
+            background: white;
+            border-radius: 16px;
+            padding: 12px 14px;
+            margin-bottom: 10px;
+            border: 1px solid #fde68a;
+            transition: all 0.2s;
+        }
+
+        .client-item:hover {
+            border-color: #f59e0b;
+            transform: translateX(-4px);
+        }
+
+        .client-name {
+            font-weight: 700;
+            color: #d97706;
+            margin-bottom: 5px;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .client-ip {
+            font-size: 0.65rem;
+            color: #78350f;
+            direction: ltr;
+            text-align: left;
+            font-family: monospace;
+            margin-bottom: 5px;
+        }
+
+        .client-os {
+            font-size: 0.6rem;
+            color: #92400e;
+            background: #fef3c7;
+            display: inline-block;
+            padding: 3px 10px;
+            border-radius: 20px;
+        }
+
+        /* پیشرفت آپلود */
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background: #fef3c7;
+            border-radius: 10px;
+            margin-top: 20px;
+            display: none;
+            overflow: hidden;
+        }
+
+        .progress-fill {
+            width: 0%;
+            height: 100%;
+            background: linear-gradient(90deg, #f59e0b, #fbbf24);
+            border-radius: 10px;
+            transition: width 0.3s;
+        }
+
+        /* آمار */
+        .stats {
+            background: #fef3c7;
+            padding: 10px;
+            border-radius: 16px;
+            margin-top: 20px;
+            text-align: center;
+            font-size: 0.8rem;
+            color: #92400e;
+            font-weight: 500;
+        }
+
+        /* راهنما */
+        .guide {
+            background: #fffbeb;
+            border-right: 4px solid #f59e0b;
+            padding: 14px;
+            border-radius: 20px;
+            margin-top: 20px;
+        }
+
+        .guide p {
+            margin-bottom: 6px;
+            color: #78350f;
+            font-size: 0.75rem;
+        }
+
+        /* QR کد */
+        .qr-container {
+            text-align: center;
+            margin-top: 20px;
+            padding: 16px;
+            background: white;
+            border-radius: 24px;
+            border: 1px solid #fde68a;
+        }
+
+        #qrImage {
+            width: 140px;
+            height: 140px;
+            margin: 0 auto;
+            display: block;
+            border-radius: 16px;
+            background: white;
+            padding: 8px;
+        }
+
+        /* دکمه کپی لینک */
+        .copy-btn {
+            background: linear-gradient(135deg, #f59e0b, #d97706);
+            border: none;
+            padding: 10px 20px;
+            border-radius: 40px;
+            color: white;
+            cursor: pointer;
+            font-weight: 700;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: all 0.2s;
+            font-family: 'Vazirmatn', sans-serif;
+        }
+
+        .copy-btn:hover {
+            transform: scale(1.05);
+            box-shadow: 0 4px 12px rgba(245, 158, 11, 0.4);
+        }
+
+        /* فروشگاه */
+        .store-btn {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 24px;
+            border-radius: 40px;
+            color: white;
+            text-decoration: none;
+            font-weight: 700;
+            transition: all 0.2s;
+        }
+
+        .store-btn:hover {
+            transform: scale(1.05);
+        }
+
+        /* فوتر */
+        .footer {
+            text-align: center;
+            margin-top: 40px;
+            padding: 20px;
+            color: #78350f;
+            font-size: 0.7rem;
+            font-weight: 500;
+            border-top: 1px solid rgba(245, 158, 11, 0.3);
+        }
+
+        /* انیمیشن‌ها */
+        @keyframes fadeInDown {
+            from {
+                opacity: 0;
+                transform: translateY(-30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        /* خالی بودن لیست */
+        .empty-message {
+            text-align: center;
+            padding: 30px;
+            color: #92400e;
+        }
+
+        /* نشان پریمیوم */
+        .premium-badge {
+            background: linear-gradient(135deg, #f59e0b, #ef4444);
+            padding: 3px 10px;
+            border-radius: 20px;
+            font-size: 0.65rem;
+            margin-right: 10px;
+        }
+
+        /* هشدار محدودیت حجم */
+        .limit-warning {
+            background: #fef3c7;
+            border: 1px solid #fbbf24;
+            padding: 8px;
+            border-radius: 14px;
+            margin-top: 12px;
+            font-size: 0.7rem;
+            color: #b45309;
+        }
+
+        @media (max-width: 640px) {
+            .file-item {
+                flex-direction: column;
+                align-items: flex-start;
+            }
+            .file-info {
+                width: 100%;
+            }
+            .file-actions {
+                width: 100%;
+                justify-content: flex-start;
+            }
+            .header h1 {
+                font-size: 2rem;
+            }
+        }
     </style>
 </head>
 <body>
+
+<!-- حباب‌های طلایی متحرک -->
+<div class="bubbles" id="bubbles"></div>
+
 <div class="container">
     <div class="header">
-        <h1>📁 همسپار | اشتراک‌گذار فایل</h1>
-        <p>انتقال فایل بدون نصب برنامه روی دستگاه گیرنده – فقط مرورگر</p>
-        <p style="font-size:0.9rem; background:rgba(0,0,0,0.3); display:inline-block; padding:5px 15px; border-radius:50px;">✅ بدون نیاز به اینترنت</p>
+        <h1>✨ همسپار ✨</h1>
+        <p>اشتراک‌گذاری فایل بدون اینترنت | سریع، امن، رایگان</p>
+        <div class="badge-group">
+            <span class="badge">⚡ بدون نیاز به اینترنت</span>
+            <span class="badge">🔒 امن و خصوصی</span>
+            <span class="badge">📱 پشتیبانی از همه دستگاه‌ها</span>
+            <span class="badge">🌟 کاملاً رایگان</span>
+        </div>
         <div class="my-info" id="myInfo"></div>
     </div>
 
     <div class="grid">
+        <!-- کارت آپلود -->
         <div class="card">
-            <h2>📤 آپلود فایل <span id="premiumBadge" class="premium-badge" style="display:none;">نسخه ویژه ✨</span></h2>
+            <h2>
+                <span>📤</span> آپلود فایل
+                <span id="premiumBadge" class="premium-badge" style="display:none;">نسخه ویژه ✨</span>
+            </h2>
             <div class="upload-area" id="uploadArea">
-                📂 کلیک کنید یا فایل را بکشید اینجا
-                <br><small>هر حجمی، هر نوع فایلی</small>
+                <div class="upload-icon">📂</div>
+                <div style="font-weight: 600;">کلیک کنید یا فایل را بکشید اینجا</div>
+                <small style="color: #92400e;">هر حجمی، هر نوع فایلی</small>
                 <input type="file" id="fileInput" style="display:none" multiple>
             </div>
-            <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="progress-bar" id="progressBar">
+                <div class="progress-fill" id="progressFill"></div>
+            </div>
             <div class="stats" id="stats"></div>
-            <div id="limitWarning" style="background:#fee2e2; padding:10px; border-radius:12px; margin-top:10px; display:none;">
-                ⚠️ کاربران عادی حداکثر 500 مگابایت میتوانند آپلود کنند. <a href="#" id="upgradeLink" style="color:#ef4444;">ارتقا به نسخه ویژه</a>
+            <div id="limitWarning" class="limit-warning" style="display:none;">
+                ⚠️ کاربران عادی حداکثر 500 مگابایت می‌توانند آپلود کنند.
+                <a href="#" id="upgradeLink" style="color: #d97706; font-weight: bold;">ارتقا به نسخه ویژه</a>
             </div>
         </div>
 
+        <!-- کارت فایل‌ها -->
         <div class="card">
-            <h2>📋 فایل‌های روی سرور</h2>
+            <h2><span>📋</span> فایل‌های روی سرور</h2>
             <div class="file-list" id="fileList">در حال بارگذاری...</div>
-            <button class="btn-delete-all" id="deleteAllBtn">🗑️ حذف همه فایل‌ها</button>
+            <button class="btn-delete-all" id="deleteAllBtn">
+                🗑️ حذف همه فایل‌ها
+            </button>
         </div>
 
+        <!-- کارت کاربران متصل -->
         <div class="card">
-            <h2>👥 کاربران متصل</h2>
+            <h2><span>👥</span> کاربران متصل</h2>
             <div class="client-list" id="clientList">در حال بارگذاری...</div>
         </div>
 
+        <!-- کارت اطلاعات و راهنما -->
         <div class="card">
-            <h2>ℹ️ راهنمای سریع</h2>
+            <h2><span>ℹ️</span> راهنمای سریع</h2>
             <div class="guide">
-                <p>1️⃣ گوشی دیگر را به وای‌فای همین گوشی وصل کن</p>
-                <p>2️⃣ آدرس سرور را در مرورگر گوشی دیگر وارد کن یا QR را اسکن کن</p>
-                <p>3️⃣ در یک گوشی فایل آپلود شود در گوشی دیگر دانلود شود</p>
+                <p>✨ 1️⃣ هات‌اسپات گوشی را روشن کنید</p>
+                <p>✨ 2️⃣ دستگاه دیگر را به هات‌اسپات وصل کنید</p>
+                <p>✨ 3️⃣ دکمه شروع سرور را بزنید</p>
+                <p>✨ 4️⃣ QR را اسکن کنید یا لینک را در مرورگر وارد کنید</p>
+                <p>✨ 5️⃣ فایل را آپلود کنید و در دستگاه دیگر دانلود کنید</p>
             </div>
 
             <div class="qr-container">
                 <p>📱 اسکن QR برای اتصال سریع</p>
                 <img src="/qrcode.png" id="qrImage" alt="QR Code">
-                <p class="note-text" id="qrError" style="display:none; color:#ef4444;">⚠️ در صورت عدم نمایش QR، از لینک زیر استفاده کنید</p>
+                <p class="note-text" id="qrError" style="display:none; color:#ef4444; font-size:0.65rem; margin-top:8px;">⚠️ در صورت عدم نمایش QR، از لینک زیر استفاده کنید</p>
             </div>
 
-            <div style="margin-top:12px; text-align:center;">
-                <p>🔗 <strong>آدرس سرور:</strong> <span id="serverUrl" style="color:#2563eb; word-break:break-all; font-size:0.85rem;"></span></p>
-                <button id="copyUrlBtn" style="margin-top:8px; background:#3b82f6; border:none; padding:8px 16px; border-radius:30px; color:white; cursor:pointer;">📋 کپی لینک</button>
+            <div style="margin-top:16px; text-align:center;">
+                <p style="color:#92400e; margin-bottom:8px; font-weight: 600;">🔗 آدرس سرور:</p>
+                <span id="serverUrl" style="color:#d97706; word-break:break-all; font-size:0.75rem; background:#fef3c7; padding:8px 12px; border-radius:12px; display:block;"></span>
+                <button id="copyUrlBtn" class="copy-btn" style="margin-top:12px;">
+                    📋 کپی لینک
+                </button>
             </div>
 
             <div style="margin-top:20px;">
-                <p style="text-align:center; margin-bottom:10px;">📲 دانلود اپلیکیشن همسپار</p>
-                <div class="store-buttons">
-                    <a href="{{STORE_LINK}}" class="store-btn" target="_blank" style="background: {{STORE_COLOR}}; display: inline-flex; align-items: center; gap: 8px; padding: 10px 20px; border-radius: 50px; color: white; text-decoration: none; font-weight: bold;">
-                        <span class="store-icon">📲</span> {{STORE_NAME}}
+                <p style="text-align:center; margin-bottom:12px; color:#92400e; font-weight: 600;">📲 دانلود اپلیکیشن همسپار</p>
+                <div style="display: flex; gap: 12px; justify-content: center;">
+                    <a href="{{STORE_LINK}}" class="store-btn" target="_blank" style="background: {{STORE_COLOR}};">
+                        <span>📥</span> {{STORE_NAME}}
                     </a>
                 </div>
-                <p class="note-text" style="text-align:center;">نصب نسخه اندروید برای تجربه بهتر</p>
+                <p class="note-text" style="text-align:center; font-size:0.65rem; color:#92400e; margin-top:10px;">نصب نسخه اندروید برای تجربه بهتر</p>
             </div>
         </div>
     </div>
-    <div class="footer">انتقال امن در شبکه محلی - بدون نیاز به اینترنت</div>
+
+    <div class="footer">
+        <p>🌟 همسپار | انتقال امن در شبکه محلی | بدون نیاز به اینترنت 🌟</p>
+        <p style="margin-top:6px;">ساخته شده با ❤️ برای شما | کداستون</p>
+    </div>
 </div>
 
 <script>
@@ -123,20 +687,31 @@
     let deleteProtection = false;
     let isPremium = false;
 
+    // ایجاد حباب‌های طلایی متحرک
+    function createBubbles() {
+        const container = document.getElementById('bubbles');
+        for (let i = 0; i < 35; i++) {
+            const bubble = document.createElement('div');
+            bubble.classList.add('bubble');
+            const size = Math.random() * 40 + 10;
+            bubble.style.width = size + 'px';
+            bubble.style.height = size + 'px';
+            bubble.style.left = Math.random() * 100 + '%';
+            bubble.style.animationDuration = Math.random() * 8 + 4 + 's';
+            bubble.style.animationDelay = Math.random() * 5 + 's';
+            container.appendChild(bubble);
+        }
+    }
+    createBubbles();
+
     function getOrCreateUniqueName() {
         let uniqueName = localStorage.getItem('uniqueUserName');
         if (!uniqueName) {
             const persianNames = [
                 "آذرگون", "بارانک", "پونه‌سا", "تیسفون", "جادوک", "چکاد", "خاوران", "دماوند",
-                "دیباچه", "راشا", "زاینده", "ژرفا", "سایه‌سان", "شبنما", "صباورد", "طلسمک",
-                "ظلمت‌زدا", "عطرا", "غزل‌سرا", "فرفره", "ققنوس", "کاروان‌سالار", "گندومک",
-                "لاله‌دشت", "مهتابک", "نارنجک", "وروجک", "هامون", "یخبندان", "ابریشمک", "پرنیان",
-                "تارا", "جیرجیرک", "چلیپا", "خزه‌زار", "درفش", "دیرین", "زبرجد", "ژاله‌پوش",
-                "سحرخیز", "شبچره", "شنگرف", "صرصر", "عقیق", "غراب", "فولادزره", "کج‌کلاه",
-                "گرزدار", "لرزانک", "مینو"
+                "دیباچه", "راشا", "زاینده", "ژرفا", "سایه‌سان", "شبنما", "صباورد", "طلسمک"
             ];
-            const emojis = ["😀", "😎", "🦁", "🐘", "🦊", "🐼", "🐧", "🦜", "⭐", "🌙",
-                            "🔥", "💎", "🎈", "🍕", "⚽", "🎵", "📚", "🚀", "🌈", "🍎"];
+            const emojis = ["😀", "😎", "🦁", "🐘", "🦊", "🐼", "🐧", "⭐", "🌙", "🔥", "💎", "🚀", "🌈"];
             const randomName = persianNames[Math.floor(Math.random() * persianNames.length)];
             const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
             uniqueName = `${randomName} ${randomEmoji}`;
@@ -155,6 +730,28 @@
         return "سایر";
     }
 
+    function detectFileNameDirection(fileName) {
+        const persianRegex = /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/;
+        return persianRegex.test(fileName) ? "rtl" : "ltr";
+    }
+
+    function escapeHtml(str) {
+        if (!str) return '';
+        return str.replace(/[&<>]/g, function(m) {
+            if (m === '&') return '&amp;';
+            if (m === '<') return '&lt;';
+            if (m === '>') return '&gt;';
+            return m;
+        });
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
     const MY_UNIQUE_NAME = getOrCreateUniqueName();
     const MY_OS = detectOS();
     document.getElementById('myInfo').innerHTML = `👤 ${MY_UNIQUE_NAME} | 💻 ${MY_OS}`;
@@ -166,8 +763,7 @@
             const data = await res.json();
             deleteProtection = data.protectDelete === true;
             isPremium = data.isPremium === true;
-            
-            // نمایش یا مخفی کردن نشان پریمیوم
+
             const premiumBadge = document.getElementById('premiumBadge');
             const limitWarning = document.getElementById('limitWarning');
             if (isPremium) {
@@ -182,16 +778,27 @@
             if (!data.files || data.files.length === 0) {
                 fileListDiv.innerHTML = '<div class="empty-message">📂 هیچ فایلی وجود ندارد</div>';
             } else {
-                fileListDiv.innerHTML = data.files.map(f => `
-                    <div class="file-item">
-                        <span class="file-name">📄 ${escapeHtml(f.name)}</span>
-                        <span class="file-size">${formatSize(f.size)}</span>
-                        <div>
-                            <a href="/download?file=${encodeURIComponent(f.name)}" class="btn-download" download>⬇️ دانلود</a>
-                            <button class="btn-delete" onclick="deleteFilePrompt('${escapeHtml(f.name)}')">🗑️ حذف</button>
+                fileListDiv.innerHTML = data.files.map(f => {
+                    const fileName = f.name;
+                    const fileSize = formatSize(f.size);
+                    const fileDir = detectFileNameDirection(fileName);
+                    const escapedFileName = escapeHtml(fileName);
+                    const safeFileName = fileName.replace(/'/g, "\\'").replace(/"/g, '&quot;');
+
+                    return `
+                        <div class="file-item">
+                            <div class="file-info">
+                                <span class="file-icon">📄</span>
+                                <span class="file-name" dir="${fileDir}">${escapedFileName}</span>
+                                <span class="file-size">${fileSize}</span>
+                            </div>
+                            <div class="file-actions">
+                                <a href="/download?file=${encodeURIComponent(fileName)}" class="btn-download" download>⬇️ دانلود</a>
+                                <button class="btn-delete" onclick="deleteFilePrompt('${safeFileName}')">🗑️ حذف</button>
+                            </div>
                         </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
 
             document.getElementById('stats').innerHTML = `📊 تعداد فایل‌ها: <strong>${data.totalFiles || 0}</strong> | حجم کل: ${formatSize(data.totalSize || 0)}`;
@@ -202,7 +809,9 @@
             } else {
                 clientListDiv.innerHTML = data.clients.map(c => `
                     <div class="client-item">
-                        <div class="client-name">👤 ${escapeHtml(c.name)}</div>
+                        <div class="client-name">
+                            <span>👤</span> ${escapeHtml(c.name)}
+                        </div>
                         <div class="client-ip">📡 IP: ${c.ip}</div>
                         <div class="client-os">💻 ${escapeHtml(c.os || 'ناشناس')}</div>
                     </div>
@@ -214,37 +823,64 @@
         }
     }
 
-    function formatSize(bytes) {
-        if (bytes === 0) return '0 B';
-        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
-        const i = Math.floor(Math.log(bytes) / Math.log(k));
-        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-    }
-
-    function escapeHtml(str) {
-        const div = document.createElement('div');
-        div.textContent = str;
-        return div.innerHTML;
-    }
-
     async function deleteFilePrompt(fileName) {
         if (confirm(`آیا از حذف فایل "${fileName}" مطمئن هستید؟`)) {
-            const body = 'fileName=' + encodeURIComponent(fileName);
-            const res = await fetch('/delete', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                body
-            });
-            if (res.status === 401) alert('مجاز به پاک کردن نیستید');
-            else loadData();
+            const formData = new FormData();
+            formData.append('fileName', fileName);
+
+            try {
+                const res = await fetch('/delete', {
+                    method: 'POST',
+                    body: formData
+                });
+
+                if (res.status === 401) {
+                    const password = prompt('رمز حذف را وارد کنید:');
+                    if (password) {
+                        const formDataWithPass = new FormData();
+                        formDataWithPass.append('fileName', fileName);
+                        formDataWithPass.append('password', password);
+                        const retryRes = await fetch('/delete', {
+                            method: 'POST',
+                            body: formDataWithPass
+                        });
+                        if (retryRes.ok) {
+                            loadData();
+                        } else {
+                            const error = await retryRes.json();
+                            alert(error.error || 'رمز اشتباه است یا خطایی رخ داده');
+                        }
+                    }
+                } else if (res.ok) {
+                    loadData();
+                } else {
+                    const error = await res.json();
+                    alert(error.error || 'خطا در حذف فایل');
+                }
+            } catch (err) {
+                console.error(err);
+                alert('خطا در ارتباط با سرور');
+            }
         }
     }
 
     document.getElementById('deleteAllBtn').addEventListener('click', async () => {
         if (confirm('آیا از حذف همه فایل‌ها مطمئن هستید؟')) {
             const res = await fetch('/delete-all', { method: 'POST' });
-            if (res.status === 401) alert('مجاز به پاک کردن نیستید');
-            else loadData();
+            if (res.status === 401) {
+                const password = prompt('رمز حذف را وارد کنید:');
+                if (password) {
+                    const formData = new FormData();
+                    formData.append('password', password);
+                    const retryRes = await fetch('/delete-all', { method: 'POST', body: formData });
+                    if (retryRes.ok) loadData();
+                    else alert('رمز اشتباه است');
+                }
+            } else if (res.ok) {
+                loadData();
+            } else {
+                alert('خطا در حذف فایل‌ها');
+            }
         }
     });
 
@@ -255,12 +891,11 @@
 
     async function uploadFiles(files) {
         for (const file of files) {
-            // بررسی سایز فایل در سمت کلاینت برای کاربران غیر پریمیوم
             if (!isPremium && file.size > 500 * 1024 * 1024) {
                 alert(`فایل "${file.name}" حجمش ${formatSize(file.size)} هست که بیش از حد مجاز 500 مگابایت است.\nبرای آپلود فایل‌های بزرگتر، نسخه ویژه را تهیه کنید.`);
                 continue;
             }
-            
+
             const formData = new FormData();
             formData.append('file', file);
             const xhr = new XMLHttpRequest();
