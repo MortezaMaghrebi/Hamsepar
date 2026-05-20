@@ -14,8 +14,8 @@ android {
         applicationId "com.codestoon.hamsepar"
         minSdk 24
         targetSdk 36
-        versionCode 3
-        versionName "1.2"
+        versionCode 5
+        versionName "1.4"
 
         // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
@@ -39,7 +39,7 @@ android {
                     marketBindAddress: "${marketBindAddress}",
                     marketPermission: "${marketApplicationId}.BILLING"
             ]
-            buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCb2XB7dmFB3vAHgEEc/9CwTCw8hOb4ojgX/hyOCJ7Q6AxN0GOxhmi2NjLCXiQwMr2R+jb9109fHXXK0NHikcmWCiW6TsrYWvgAUzLKNvBoipJ+C59AD0M+Mvia9QGMeOu+4ieTivxABXb2yh8RlwQETP4wXFIRdMt3gEaoB8Pj4wIDAQAB\""
+            buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCHH65J3wEL2Pnll0X7QLGqMz3pbHCp+mhIeOS+++Mrk36fWy75jkN2dQ9xCHDYNJ/ddrCLZrMX4NQe5sXC5oq5eS2/UQJR+J7T9ErajJ+e+tkqnFpI6MQgj+7RCCD8Jyl+5GVsA9PbDd3pBXuYIDXJiMvbsIMQABWa7IVIg3qheQIDAQAB\""
             buildConfigField "String", "STORE_NAME", "\"myket\""
         }
 
@@ -56,7 +56,7 @@ android {
                     marketBindAddress: "${marketBindAddress}",
                     marketPermission: "com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR"
             ]
-            buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDJj5btdckeUJuSXWBdGmdjH3YInXmtKfM8hCP19qnTUhYFbiZj5ql0AohAT0MqefZRqjlWctMfhBqbbuJcEpnSh9C3qL030zFaPT+VPSfrfMdN0zf4vXltRxiZZE0fYM0BX+SABEWs0NjTE9QqQ5e5yj/NoIDoQEh38niweLshL7PA/GGqF1k8VP2C0B7nrandcitxgMQNKfaeTxNScd1t+LgT/rORsaddxuaiX7sCAwEAAQ==\""
+            buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDd0z2MU0TkGMoBpOIIs4LaLY6TjQdSfTIIcYfQPtUp1PbsC4aDnpvMZwxMocjDr300xUQA4jS85dUJ4sSQn9b+L7yNv4G8vGG3oFS5FIXu7c/XW7EPyDFczG95V6t8FJUCO5Nny/7lFiP+qQjUcu4YC8PFKxezuQIntSYMafDJA7xTKeSOaIjhZQh9npTkQvo3o7bMc+OQ5mFTDzN5uSEsHYDXHdJcrZ+8WsTSbQUCAwEAAQ==\""
             buildConfigField "String", "STORE_NAME", "\"bazaar\""
         }
     }

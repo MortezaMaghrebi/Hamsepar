@@ -285,7 +285,7 @@ public class MainActivity extends AppCompatActivity {
         if (billingManager != null && billingManager.isPremiumActivated()) {
             new AlertDialog.Builder(this)
                     .setTitle("🎁 شما کاربر ویژه هستید!")
-                    .setMessage("با تشکر از حمایت شما، می‌توانید فایل‌های با هر حجمی را انتقال دهید.\n\nکودک شما می‌تواند بدون وقفه از کارتون‌ها لذت ببرد.")
+                    .setMessage("با تشکر از حمایت شما، می‌توانید فایل‌های با هر حجمی را انتقال دهید.\n\n")
                     .setPositiveButton("باشه 😊", null)
                     .show();
             return;
