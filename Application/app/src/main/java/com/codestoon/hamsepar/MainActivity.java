@@ -12,6 +12,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.format.Formatter;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -25,6 +26,7 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
@@ -54,7 +56,13 @@ import java.util.concurrent.ConcurrentHashMap;
 import fi.iki.elonen.NanoHTTPD;
 
 public class MainActivity extends AppCompatActivity {
+    private BillingManager billingManager;
 
+    // در متد onCreate، بعد از initViews() اضافه کنید
+    private void initBilling() {
+        billingManager = BillingManager.getInstance(this);
+        billingManager.initializeBilling();
+    }
     private static final int PORT = 8080;
     private static final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 
@@ -150,6 +158,112 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "سرور روشن نیست", Toast.LENGTH_SHORT).show();
             }
         });
+
+        initFooterButtons();
+        initBilling();
+    }
+
+    void initFooterButtons()
+    {
+        // دکمه ادامه تماشا با انیمیشن
+        View showVideosBtn = findViewById(R.id.continueWatchingButton);
+        if (showVideosBtn != null) {
+            showVideosBtn.setOnClickListener(v -> {
+                animateButton(v);
+                //ShowLastShownSerial();
+            });
+        }
+
+        // دکمه نظر دادن با انیمیشن
+        View commentBtn = findViewById(R.id.commentButton);
+        if (commentBtn != null) {
+            commentBtn.setOnClickListener(v -> {
+                animateButton(v);
+                Intent intent = new Intent(MainActivity.this, CommentActivity.class);
+                startActivity(intent);
+            });
+        }
+
+        // دکمه نسخه ویژه با انیمیشن
+        View premiumBtn = findViewById(R.id.premiumButton);
+        if (premiumBtn != null) {
+            premiumBtn.setOnClickListener(v -> {
+                animateButton(v);
+                showPremiumPurchaseDialog();
+            });
+        }
+
+        // دکمه سایر برنامه‌ها با انیمیشن
+        View otherAppsBtn = findViewById(R.id.otherAppsButton);
+        if (otherAppsBtn != null) {
+            otherAppsBtn.setOnClickListener(v -> {
+                animateButton(v);
+                StoreIntents.openDeveloperPage(MainActivity.this);
+            });
+        }
+
+        // پیدا کردن FAB و تنظیم کلیک
+        FloatingActionButton fabComment = findViewById(R.id.fabComment);
+        if (fabComment != null) {
+            fabComment.setOnClickListener(v -> {
+                Intent intent = new Intent(MainActivity.this, CommentActivity.class);
+                startActivity(intent);
+            });
+        }
+    }
+
+    private void animateButton(View button) {
+        button.animate()
+                .scaleX(0.95f)
+                .scaleY(0.95f)
+                .setDuration(100)
+                .withEndAction(() -> {
+                    button.animate()
+                            .scaleX(1f)
+                            .scaleY(1f)
+                            .setDuration(100)
+                            .start();
+                })
+                .start();
+    }
+
+    private void showPremiumPurchaseDialog() {
+        // اگر قبلاً پریمیوم شده
+        if (billingManager != null && billingManager.isPremiumActivated()) {
+            new AlertDialog.Builder(this)
+                    .setTitle("🎁 شما کاربر ویژه هستید!")
+                    .setMessage("با تشکر از حمایت شما، تبلیغات برای همیشه حذف شده است.\n\nکودک شما می‌تواند بدون وقفه از کارتون‌ها لذت ببرد.")
+                    .setPositiveButton("باشه 😊", null)
+                    .show();
+            return;
+        }
+
+        // دیالوگ خرید
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_premium, null);
+
+        TextView tvPrice = view.findViewById(R.id.tvPrice);
+        Button btnBuy = view.findViewById(R.id.btnBuy);
+        Button btnCancel = view.findViewById(R.id.btnCancel);
+
+        tvPrice.setText("39,000 تومان");
+
+        builder.setView(view);
+        builder.setCancelable(true);
+        AlertDialog dialog = builder.create();
+
+        btnBuy.setOnClickListener(v -> {
+            if (billingManager != null && billingManager.isReady()) {
+                billingManager.purchasePremium();
+                dialog.dismiss();
+            } else {
+                Toast.makeText(this, "⏳ سرویس پرداخت در حال آماده‌سازی...", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        btnCancel.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.show();
     }
 
     private void checkPermissions() {

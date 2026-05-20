@@ -18,13 +18,13 @@
         .upload-area:hover { background: #eef2ff; border-color: #764ba2; }
         .upload-area.drag-over { background: #e0e7ff; border-color: #4c51bf; }
         .file-list, .client-list { max-height: 400px; overflow-y: auto; }
-        .file-item, .client-item { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; margin: 8px 0; border-radius: 15px; flex-wrap: wrap; }
+        .file-item { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; margin: 8px 0; border-radius: 15px; flex-wrap: wrap; }
         .file-name { flex: 2; word-break: break-all; font-weight: 500; }
         .file-size { font-size: 0.75rem; color: #4a5568; margin: 0 10px; }
-        .client-item { flex-direction: column; align-items: flex-start; gap: 5px; }
-        .client-name { font-weight: bold; color: #2d3748; }
-        .client-ip { font-size: 0.7rem; color: #718096; direction: ltr; text-align: left; }
-        .client-os { font-size: 0.7rem; color: #4a5568; }
+        .client-item { background: #f1f5f9; padding: 12px; margin: 8px 0; border-radius: 15px; }
+        .client-name { font-weight: bold; color: #2d3748; font-size: 1rem; margin-bottom: 5px; }
+        .client-ip { font-size: 0.7rem; color: #718096; direction: ltr; text-align: left; font-family: monospace; margin-bottom: 4px; }
+        .client-os { font-size: 0.7rem; color: #4a5568; background: #e2e8f0; display: inline-block; padding: 2px 8px; border-radius: 12px; margin-top: 4px; }
         .btn-download, .btn-delete { border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-left: 6px; text-decoration: none; display: inline-block; }
         .btn-download { background: #10b981; color: white; }
         .btn-delete { background: #ef4444; color: white; }
@@ -45,6 +45,7 @@
         .store-icon { font-size: 1.3rem; }
         .footer { text-align: center; margin-top: 30px; color: white; font-size: 0.8rem; }
         .note-text { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
+        .empty-message { color: #6b7280; text-align: center; padding: 20px; }
         @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -77,7 +78,7 @@
 
         <div class="card">
             <h2>👥 کاربران متصل</h2>
-            <div class="client-list" id="clientList"></div>
+            <div class="client-list" id="clientList">در حال بارگذاری...</div>
         </div>
 
         <div class="card">
@@ -163,17 +164,18 @@
             const data = await res.json();
             deleteProtection = data.protectDelete === true;
 
+            // نمایش فایل‌ها
             const fileListDiv = document.getElementById('fileList');
             if (!data.files || data.files.length === 0) {
-                fileListDiv.innerHTML = '<p style="color:#6b7280;">هیچ فایلی وجود ندارد</p>';
+                fileListDiv.innerHTML = '<div class="empty-message">📂 هیچ فایلی وجود ندارد</div>';
             } else {
                 fileListDiv.innerHTML = data.files.map(f => `
                     <div class="file-item">
                         <span class="file-name">📄 ${escapeHtml(f.name)}</span>
                         <span class="file-size">${formatSize(f.size)}</span>
                         <div>
-                            <a href="/download?file=${encodeURIComponent(f.name)}" class="btn-download" download>دانلود</a>
-                            <button class="btn-delete" onclick="deleteFilePrompt('${escapeHtml(f.name)}')">حذف</button>
+                            <a href="/download?file=${encodeURIComponent(f.name)}" class="btn-download" download>⬇️ دانلود</a>
+                            <button class="btn-delete" onclick="deleteFilePrompt('${escapeHtml(f.name)}')">🗑️ حذف</button>
                         </div>
                     </div>
                 `).join('');
@@ -181,20 +183,22 @@
 
             document.getElementById('stats').innerHTML = `📊 تعداد فایل‌ها: <strong>${data.totalFiles || 0}</strong> | حجم کل: ${formatSize(data.totalSize || 0)}`;
 
+            // نمایش کاربران متصل - اصلاح شده
             const clientListDiv = document.getElementById('clientList');
             if (!data.clients || data.clients.length === 0) {
-                clientListDiv.innerHTML = '<p style="color:#6b7280;">هیچ کاربر متصلی نیست</p>';
+                clientListDiv.innerHTML = '<div class="empty-message">👥 هیچ کاربر متصلی نیست</div>';
             } else {
                 clientListDiv.innerHTML = data.clients.map(c => `
                     <div class="client-item">
                         <div class="client-name">👤 ${escapeHtml(c.name)}</div>
-                        <div class="client-ip">📡 ${c.ip}</div>
+                        <div class="client-ip">📡 IP: ${c.ip}</div>
                         <div class="client-os">💻 ${escapeHtml(c.os || 'ناشناس')}</div>
                     </div>
                 `).join('');
             }
         } catch (err) {
             console.error(err);
+            document.getElementById('clientList').innerHTML = '<div class="empty-message">❌ خطا در دریافت اطلاعات</div>';
         }
     }
 
@@ -212,20 +216,24 @@
     }
 
     async function deleteFilePrompt(fileName) {
-        const body = 'fileName=' + encodeURIComponent(fileName);
-        const res = await fetch('/delete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-            body
-        });
-        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.);
-        else loadData();
+        if (confirm(`آیا از حذف فایل "${fileName}" مطمئن هستید؟`)) {
+            const body = 'fileName=' + encodeURIComponent(fileName);
+            const res = await fetch('/delete', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                body
+            });
+            if (res.status === 401) alert('مجاز به پاک کردن نیستید');
+            else loadData();
+        }
     }
 
     document.getElementById('deleteAllBtn').addEventListener('click', async () => {
-        const res = await fetch('/delete-all', { method: 'POST' });
-        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.);
-        else loadData();
+        if (confirm('آیا از حذف همه فایل‌ها مطمئن هستید؟')) {
+            const res = await fetch('/delete-all', { method: 'POST' });
+            if (res.status === 401) alert('مجاز به پاک کردن نیستید');
+            else loadData();
+        }
     });
 
     async function uploadFiles(files) {

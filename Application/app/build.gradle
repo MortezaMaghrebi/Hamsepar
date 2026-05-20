@@ -14,18 +14,64 @@ android {
         applicationId "com.codestoon.hamsepar"
         minSdk 24
         targetSdk 36
-        versionCode 1
-        versionName "1.0"
+        versionCode 3
+        versionName "1.2"
 
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+        // testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    flavorDimensions "store"
+    productFlavors {
+        myket {
+            dimension "store"
+            //applicationId "com.codestoon.koodakboom.myket"  // پکیج متفاوت
+            versionNameSuffix "-myket"
+
+            // تنظیمات مایکت
+            def marketApplicationId = "ir.mservices.market"
+            def marketBindAddress = "ir.mservices.market.InAppBillingService.BIND"
+            manifestPlaceholders = [
+                    marketApplicationId: "${marketApplicationId}",
+                    marketBindAddress: "${marketBindAddress}",
+                    marketPermission: "${marketApplicationId}.BILLING"
+            ]
+            buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQCb2XB7dmFB3vAHgEEc/9CwTCw8hOb4ojgX/hyOCJ7Q6AxN0GOxhmi2NjLCXiQwMr2R+jb9109fHXXK0NHikcmWCiW6TsrYWvgAUzLKNvBoipJ+C59AD0M+Mvia9QGMeOu+4ieTivxABXb2yh8RlwQETP4wXFIRdMt3gEaoB8Pj4wIDAQAB\""
+            buildConfigField "String", "STORE_NAME", "\"myket\""
+        }
+
+        bazaar {
+            dimension "store"
+            // applicationId "com.codestoon.koodakboom.bazaar"  // پکیج متفاوت
+            versionNameSuffix "-bazaar"
+
+            // تنظیمات بازار
+            def marketApplicationId = "com.farsitel.bazaar"
+            def marketBindAddress = "ir.cafebazaar.pardakht.InAppBillingService.BIND"
+            manifestPlaceholders = [
+                    marketApplicationId: "${marketApplicationId}",
+                    marketBindAddress: "${marketBindAddress}",
+                    marketPermission: "com.farsitel.bazaar.permission.PAY_THROUGH_BAZAAR"
+            ]
+            buildConfigField "String", "IAB_PUBLIC_KEY", "\"MIHNMA0GCSqGSIb3DQEBAQUAA4G7ADCBtwKBrwDJj5btdckeUJuSXWBdGmdjH3YInXmtKfM8hCP19qnTUhYFbiZj5ql0AohAT0MqefZRqjlWctMfhBqbbuJcEpnSh9C3qL030zFaPT+VPSfrfMdN0zf4vXltRxiZZE0fYM0BX+SABEWs0NjTE9QqQ5e5yj/NoIDoQEh38niweLshL7PA/GGqF1k8VP2C0B7nrandcitxgMQNKfaeTxNScd1t+LgT/rORsaddxuaiX7sCAwEAAQ==\""
+            buildConfigField "String", "STORE_NAME", "\"bazaar\""
+        }
     }
 
     buildTypes {
         release {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            buildConfigField "boolean", "ENABLE_DEBUG_LOGS", "false"
+        }
+        debug {
+            buildConfigField "boolean", "ENABLE_DEBUG_LOGS", "true"
         }
     }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_11
         targetCompatibility JavaVersion.VERSION_11
@@ -44,4 +90,15 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.1'
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    //adivery
+    implementation 'com.adivery:sdk:4.8.3'
+    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.5.10'
+
+
+}
+
+// وابستگی‌های خاص هر flavor
+dependencies {
+    myketImplementation 'com.github.myketstore:myket-billing-client:1.6'
+    bazaarImplementation "com.github.cafebazaar.Poolakey:poolakey:2.2.0"
 }

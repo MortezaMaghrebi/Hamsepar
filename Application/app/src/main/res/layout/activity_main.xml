@@ -1,303 +1,526 @@
 <?xml version="1.0" encoding="utf-8"?>
-<ScrollView xmlns:android="http://schemas.android.com/apk/res/android"
+
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:layoutDirection="rtl"
-    android:background="#F5F7FA">
+    android:background="#F5F7FA"
+    android:layoutDirection="rtl">
 
-    <LinearLayout
+    <ScrollView
         android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:orientation="vertical"
-        android:padding="20dp">
+        android:layout_height="match_parent"
+        android:layout_above="@id/llFooterButtons"
+        android:background="#F5F7FA"
+        android:layoutDirection="rtl">
 
-        <!-- Header with Logo -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:orientation="horizontal"
-            android:gravity="center_vertical"
-            android:layout_marginBottom="20dp">
+            android:orientation="vertical"
+            android:padding="20dp">
 
-            <LinearLayout
-                android:layout_width="0dp"
-                android:layout_height="wrap_content"
-                android:layout_weight="1"
-                android:orientation="vertical">
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="همسپار"
-                    android:textSize="28sp"
-                    android:textColor="#1F2937"
-                    android:textStyle="bold" />
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="اشتراک‌گذاری فایل بدون اینترنت"
-                    android:textSize="12sp"
-                    android:textColor="#6B7280" />
-            </LinearLayout>
-
-            <View
-                android:id="@+id/indicatorStatus"
-                android:layout_width="12dp"
-                android:layout_height="12dp"
-                android:background="@drawable/indicator_off" />
-        </LinearLayout>
-
-        <!-- آموزش سریع (جایگزین دیالوگ) -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="#E0F2FE"
-            app:cardCornerRadius="16dp"
-            android:layout_marginBottom="20dp"
-            app:cardElevation="0dp">
-
+            <!-- Header with Logo -->
             <LinearLayout
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="16dp">
+                android:layout_marginBottom="20dp"
+                android:gravity="center_vertical"
+                android:orientation="horizontal">
 
-                <TextView
-                    android:layout_width="wrap_content"
+                <LinearLayout
+                    android:layout_width="0dp"
                     android:layout_height="wrap_content"
-                    android:text="📖 چگونه کار می‌کند؟"
-                    android:textColor="#0284C7"
-                    android:textSize="15dp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="10dp" />
+                    android:layout_weight="1"
+                    android:orientation="vertical">
 
-                <TextView
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="1- هات اسپات گوشی را روشن کن\n2- گوشی دوم یا کامپیوتر را به همین هات اسپات وصل کن\n3- روی دکمه «شروع سرور» بزن\n4- در گوشی دوم یا کامپیوتر، آدرس یا QR کد را در مرورگر باز کن\n5- در یک گوشی فایل آپلود شود ← در گوشی دیگر دانلود شود (یا برعکس)\n6- راه جایگزین: هر دو گوشی به یک وای‌فای مشترک متصل شوند\n7- میتونی چند تا گوشی و کامپیوتر رو به وای فای وصل کنی و فایل رو همزمان با همه شون به اشتراک بذاری"
-                    android:textSize="13dp"
-                    android:lineSpacingExtra="6dp" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="همسپار"
+                        android:textColor="#1F2937"
+                        android:textSize="28sp"
+                        android:textStyle="bold" />
 
-        <!-- کارت وضعیت سرور -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="وضعیت سرور"
-                    android:textColor="#6B7280"
-                    android:textSize="12sp" />
-                <TextView
-                    android:id="@+id/txtServerStatus"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="خاموش"
-                    android:textColor="#EF4444"
-                    android:textSize="24sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="16dp" />
-                <Button
-                    android:id="@+id/btnStartStop"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:text="شروع سرور"
-                    android:backgroundTint="#10B981"
-                    android:textColor="#FFFFFF"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    app:cornerRadius="30dp" />
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
-
-        <!-- کارت اطلاعات شبکه و کاربران -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp"
-            android:layout_marginBottom="16dp">
-
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:orientation="vertical"
-                android:padding="20dp">
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="🌐 لینک دسترسی"
-                    android:textColor="#374151"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="8dp" />
-                <TextView
-                    android:id="@+id/txtServerUrl"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="---"
-                    android:textColor="#3B82F6"
-                    android:textSize="13sp"
-                    android:textIsSelectable="true"
-                    android:background="#F3F4F6"
-                    android:padding="12dp"
-                    android:layout_marginBottom="12dp"
-                    android:fontFamily="monospace" />
-                <Button
-                    android:id="@+id/btnCopyUrl"
-                    android:layout_width="match_parent"
-                    android:layout_height="44dp"
-                    android:text="📋 کپی لینک"
-                    android:backgroundTint="#E5E7EB"
-                    android:textColor="#374151"
-                    android:textStyle="bold"
-                    android:enabled="false"
-                    app:cornerRadius="22dp"
-                    android:layout_marginBottom="16dp" />
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="اشتراک‌گذاری فایل بدون اینترنت"
+                        android:textColor="#6B7280"
+                        android:textSize="12sp" />
+                </LinearLayout>
 
                 <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E5E7EB"
-                    android:layout_marginVertical="8dp" />
+                    android:id="@+id/indicatorStatus"
+                    android:layout_width="12dp"
+                    android:layout_height="12dp"
+                    android:background="@drawable/indicator_off" />
+            </LinearLayout>
 
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="📡 آی‌پی محلی"
-                    android:textColor="#374151"
-                    android:textSize="14sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="4dp" />
-                <TextView
-                    android:id="@+id/txtLocalIp"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="---"
-                    android:textColor="#F59E0B"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="16dp" />
+            <!-- آموزش سریع (جایگزین دیالوگ) -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="20dp"
+                app:cardBackgroundColor="#E0F2FE"
+                app:cardCornerRadius="16dp"
+                app:cardElevation="0dp">
 
-                <View
-                    android:layout_width="match_parent"
-                    android:layout_height="1dp"
-                    android:background="#E5E7EB"
-                    android:layout_marginVertical="8dp" />
-
-                <TextView
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:text="👥 کاربران آنلاین"
-                    android:textColor="#374151"
-                    android:textSize="14sp"
-                    android:textStyle="bold" />
-                <TextView
-                    android:id="@+id/txtClientsCount"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="0"
-                    android:textColor="#10B981"
-                    android:textSize="32sp"
-                    android:textStyle="bold" />
-
-                <Button
-                    android:id="@+id/btnOpenBrowser"
-                    android:layout_width="match_parent"
-                    android:layout_height="52dp"
-                    android:text="🌐 باز کردن در مرورگر"
-                    android:layout_marginTop="16dp"
-                    android:backgroundTint="#8B5CF6"
-                    android:textColor="#FFFFFF"
-                    android:textStyle="bold"
-                    android:enabled="false"
-                    app:cornerRadius="30dp" />
-
-                <!-- گزینه‌های امنیت -->
                 <LinearLayout
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
                     android:orientation="vertical"
-                    android:layout_marginTop="16dp"
-                    android:padding="12dp"
-                    android:background="#F9FAFB">
+                    android:padding="16dp">
 
-                    <CheckBox
-                        android:id="@+id/chkProtectDelete"
+                    <TextView
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
-                        android:text="عدم اجازه حذف فایل"
-                        android:textColor="#374151" />
-                    <EditText
-                        android:id="@+id/edtDeletePassword"
+                        android:layout_marginBottom="10dp"
+                        android:text="📖 چگونه کار می‌کند؟"
+                        android:textColor="#0284C7"
+                        android:textSize="15dp"
+                        android:textStyle="bold" />
+
+                    <TextView
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:hint="رمز حذف"
-                        android:inputType="numberPassword"
-                        android:text="1234"
-                        android:textColor="#1F2937"
-                        android:enabled="false"
-                        android:layout_marginTop="8dp"
-                        android:background="#FFFFFF"
-                        android:visibility="gone"
-                        android:padding="12dp" />
+                        android:lineSpacingExtra="6dp"
+                        android:text="1- هات اسپات گوشی را روشن کن\n2- گوشی دوم یا کامپیوتر را به همین هات اسپات وصل کن\n3- روی دکمه «شروع سرور» بزن\n4- در گوشی دوم یا کامپیوتر، آدرس یا QR کد را در مرورگر باز کن\n5- در یک گوشی فایل آپلود شود ← در گوشی دیگر دانلود شود (یا برعکس)\n6- راه جایگزین: هر دو گوشی به یک وای‌فای مشترک متصل شوند\n7- میتونی چند تا گوشی و کامپیوتر رو به وای فای وصل کنی و فایل رو همزمان با همه شون به اشتراک بذاری"
+                        android:textSize="13dp" />
                 </LinearLayout>
-            </LinearLayout>
-        </androidx.cardview.widget.CardView>
+            </androidx.cardview.widget.CardView>
 
-        <!-- کارت QR کد -->
-        <androidx.cardview.widget.CardView
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            app:cardBackgroundColor="#FFFFFF"
-            app:cardCornerRadius="24dp"
-            app:cardElevation="2dp">
-
-            <LinearLayout
+            <!-- کارت وضعیت سرور -->
+            <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="وضعیت سرور"
+                        android:textColor="#6B7280"
+                        android:textSize="12sp" />
+
+                    <TextView
+                        android:id="@+id/txtServerStatus"
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="خاموش"
+                        android:textColor="#EF4444"
+                        android:textSize="24sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnStartStop"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:backgroundTint="#10B981"
+                        android:text="شروع سرور"
+                        android:textColor="#FFFFFF"
+                        android:textSize="16sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="30dp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- کارت اطلاعات شبکه و کاربران -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="16dp"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="8dp"
+                        android:text="🌐 لینک دسترسی"
+                        android:textColor="#374151"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtServerUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:background="#F3F4F6"
+                        android:fontFamily="monospace"
+                        android:padding="12dp"
+                        android:text="---"
+                        android:textColor="#3B82F6"
+                        android:textIsSelectable="true"
+                        android:textSize="13sp" />
+
+                    <Button
+                        android:id="@+id/btnCopyUrl"
+                        android:layout_width="match_parent"
+                        android:layout_height="44dp"
+                        android:layout_marginBottom="16dp"
+                        android:backgroundTint="#E5E7EB"
+                        android:enabled="false"
+                        android:text="📋 کپی لینک"
+                        android:textColor="#374151"
+                        android:textStyle="bold"
+                        app:cornerRadius="22dp" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="8dp"
+                        android:background="#E5E7EB" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="4dp"
+                        android:text="📡 آی‌پی محلی"
+                        android:textColor="#374151"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtLocalIp"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="16dp"
+                        android:text="---"
+                        android:textColor="#F59E0B"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <View
+                        android:layout_width="match_parent"
+                        android:layout_height="1dp"
+                        android:layout_marginVertical="8dp"
+                        android:background="#E5E7EB" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:text="👥 کاربران آنلاین"
+                        android:textColor="#374151"
+                        android:textSize="14sp"
+                        android:textStyle="bold" />
+
+                    <TextView
+                        android:id="@+id/txtClientsCount"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:text="0"
+                        android:textColor="#10B981"
+                        android:textSize="32sp"
+                        android:textStyle="bold" />
+
+                    <Button
+                        android:id="@+id/btnOpenBrowser"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginTop="16dp"
+                        android:backgroundTint="#8B5CF6"
+                        android:enabled="false"
+                        android:text="🌐 باز کردن در مرورگر"
+                        android:textColor="#FFFFFF"
+                        android:textStyle="bold"
+                        app:cornerRadius="30dp" />
+
+                    <!-- گزینه‌های امنیت -->
+                    <LinearLayout
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="16dp"
+                        android:background="#F9FAFB"
+                        android:orientation="vertical"
+                        android:padding="12dp">
+
+                        <CheckBox
+                            android:id="@+id/chkProtectDelete"
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:text="عدم اجازه حذف فایل"
+                            android:textColor="#374151" />
+
+                        <EditText
+                            android:id="@+id/edtDeletePassword"
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="8dp"
+                            android:background="#FFFFFF"
+                            android:enabled="false"
+                            android:hint="رمز حذف"
+                            android:inputType="numberPassword"
+                            android:padding="12dp"
+                            android:text="1234"
+                            android:textColor="#1F2937"
+                            android:visibility="gone" />
+                    </LinearLayout>
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+            <!-- کارت QR کد -->
+            <androidx.cardview.widget.CardView
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                app:cardBackgroundColor="#FFFFFF"
+                app:cardCornerRadius="24dp"
+                app:cardElevation="2dp">
+
+                <LinearLayout
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:gravity="center"
+                    android:orientation="vertical"
+                    android:padding="20dp">
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:text="اسکن QR برای اتصال سریع"
+                        android:textColor="#1F2937"
+                        android:textSize="16sp"
+                        android:textStyle="bold" />
+
+                    <ImageView
+                        android:id="@+id/imgQrCode"
+                        android:layout_width="200dp"
+                        android:layout_height="200dp"
+                        android:background="#F3F4F6"
+                        android:padding="8dp" />
+
+                    <TextView
+                        android:layout_width="wrap_content"
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:text="دستگاه دیگر این کد را اسکن کند"
+                        android:textColor="#6B7280"
+                        android:textSize="12sp" />
+                </LinearLayout>
+            </androidx.cardview.widget.CardView>
+
+        </LinearLayout>
+    </ScrollView>
+
+    <LinearLayout
+        android:id="@+id/llFooterButtons"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:background="#FFFFFF"
+        android:elevation="10dp"
+        android:gravity="center"
+        android:orientation="vertical"
+        android:padding="12dp"
+        android:paddingBottom="16dp">
+
+        <LinearLayout
+            android:id="@+id/bannerAdLayout"
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="?attr/selectableItemBackground"
+            android:clickable="true"
+            android:elevation="4dp"
+            android:focusable="true"
+            android:gravity="center"
+            android:orientation="vertical">
+            <!-- بنر تبلیغات (فقط برای کاربران رایگان) -->
+            <LinearLayout
+                android:id="@+id/bannerAdContainer"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="4dp"
+                android:gravity="center"
                 android:orientation="vertical"
-                android:padding="20dp"
-                android:gravity="center">
+                android:visibility="gone">
+
+                <com.adivery.sdk.AdiveryBannerAdView
+                    android:id="@+id/banner_ad"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_gravity="center"
+                    app:banner_size="banner" />
+            </LinearLayout>
+        </LinearLayout>
+
+        <!-- دکمه‌های پایین (طراحی جدید) -->
+        <!-- دکمه‌های پایین (طراحی جدید با دکمه سایر اپ‌ها) -->
+        <LinearLayout
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:background="#FFFFFF"
+            android:elevation="10dp"
+            android:gravity="center"
+            android:orientation="horizontal"
+            android:padding="4dp"
+            android:paddingBottom="16dp">
+
+            <LinearLayout
+                android:id="@+id/continueWatchingButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_button_bg_search">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_continue_watching"
+                        app:tint="#FFFFFF" />
+
+                </FrameLayout>
 
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="اسکن QR برای اتصال سریع"
-                    android:textColor="#1F2937"
-                    android:textSize="16sp"
-                    android:textStyle="bold"
-                    android:layout_marginBottom="12dp" />
-                <ImageView
-                    android:id="@+id/imgQrCode"
-                    android:layout_width="200dp"
-                    android:layout_height="200dp"
-                    android:background="#F3F4F6"
-                    android:padding="8dp" />
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="@font/yekan"
+                    android:text="ادامه تماشا"
+                    android:textColor="#3498db"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+            <LinearLayout
+                android:id="@+id/premiumButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_button_bg_favorite">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_crown"
+                        app:tint="#FFFFFF" />
+
+                </FrameLayout>
+
                 <TextView
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:text="دستگاه دیگر این کد را اسکن کند"
-                    android:textColor="#6B7280"
-                    android:textSize="12sp"
-                    android:layout_marginTop="12dp" />
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="@font/yekan"
+                    android:text="نسخه پرو"
+                    android:textColor="#E74C3C"
+                    android:textSize="11sp" />
+
             </LinearLayout>
-        </androidx.cardview.widget.CardView>
+
+            <LinearLayout
+                android:id="@+id/commentButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_button_bg_mastered">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_comment"
+                        app:tint="#FFFFFF" />
+
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="@font/yekan"
+                    android:text="نظر دادن"
+                    android:textColor="#27AE60"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+
+            <LinearLayout
+                android:id="@+id/otherAppsButton"
+                android:layout_width="0dp"
+                android:layout_height="match_parent"
+                android:layout_weight="1"
+                android:background="?attr/selectableItemBackgroundBorderless"
+                android:clickable="true"
+                android:focusable="true"
+                android:gravity="center"
+                android:orientation="vertical">
+
+                <FrameLayout
+                    android:layout_width="48dp"
+                    android:layout_height="48dp"
+                    android:background="@drawable/circle_button_bg_other">
+
+                    <ImageView
+                        android:layout_width="24dp"
+                        android:layout_height="24dp"
+                        android:layout_gravity="center"
+                        android:src="@drawable/ic_other_apps"
+                        app:tint="#FFFFFF" />
+
+                </FrameLayout>
+
+                <TextView
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:layout_marginTop="6dp"
+                    android:fontFamily="@font/yekan"
+                    android:text="سایر اپ‌ها"
+                    android:textColor="#FF9800"
+                    android:textSize="11sp" />
+
+            </LinearLayout>
+
+        </LinearLayout>
+
 
     </LinearLayout>
-</ScrollView>
+</RelativeLayout>
