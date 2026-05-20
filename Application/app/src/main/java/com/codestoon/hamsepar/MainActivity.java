@@ -1,0 +1,570 @@
+package com.codestoon.hamsepar;
+
+import android.Manifest;
+import android.content.Context;
+import android.content.DialogInterface;
+import android.content.Intent;
+import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
+import android.graphics.Bitmap;
+import android.net.Uri;
+import android.net.wifi.WifiManager;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.Looper;
+import android.text.format.Formatter;
+import android.view.LayoutInflater;
+import android.view.View;
+import android.widget.Button;
+import android.widget.CheckBox;
+import android.widget.EditText;
+import android.widget.ImageView;
+import android.widget.TextView;
+import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
+import androidx.core.content.ContextCompat;
+
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.WriterException;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
+
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.IOException;
+import java.io.InputStream;
+import java.io.ByteArrayOutputStream;
+import java.net.InetAddress;
+import java.net.NetworkInterface;
+import java.net.SocketException;
+import java.text.SimpleDateFormat;
+import java.util.ArrayList;
+import java.util.Date;
+import java.util.Enumeration;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Locale;
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+
+import fi.iki.elonen.NanoHTTPD;
+
+public class MainActivity extends AppCompatActivity {
+
+    private static final int PORT = 8080;
+
+    // ====== تعریف static در سطح کلاس اصلی ======
+    private static final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
+
+    // کلاس ClientInfo به صورت static تعریف می‌شود
+    private static class ClientInfo {
+        String name;
+        String os;
+        long lastSeen;
+
+        ClientInfo(String name, String os) {
+            this.name = name;
+            this.os = os;
+            this.lastSeen = System.currentTimeMillis();
+        }
+
+        void updateSeen() {
+            this.lastSeen = System.currentTimeMillis();
+        }
+    }
+
+    private TextView txtStatus, txtServerUrl, txtLocalIp, txtClientsCount;
+    private Button btnStartStop, btnOpenBrowser, btnCopyUrl;
+    private ImageView imgQrCode;
+    private View indicatorStatus;
+    private CheckBox chkProtectDelete;
+    private EditText edtDeletePassword;
+
+    private FileServer webServer;
+    private String currentIp;
+    private Handler mainHandler = new Handler(Looper.getMainLooper());
+
+    // ذخیره تنظیمات امنیت
+    private SharedPreferences prefs;
+    private boolean deleteProtectionEnabled = false;
+    private String deletePassword = "";
+
+    @Override
+    protected void onCreate(Bundle savedInstanceState) {
+        super.onCreate(savedInstanceState);
+        setContentView(R.layout.activity_main);
+
+        // شناسایی ویجت‌ها
+        txtStatus = findViewById(R.id.txtServerStatus);
+        txtServerUrl = findViewById(R.id.txtServerUrl);
+        txtLocalIp = findViewById(R.id.txtLocalIp);
+        txtClientsCount = findViewById(R.id.txtClientsCount);
+        btnStartStop = findViewById(R.id.btnStartStop);
+        btnOpenBrowser = findViewById(R.id.btnOpenBrowser);
+        btnCopyUrl = findViewById(R.id.btnCopyUrl);
+        imgQrCode = findViewById(R.id.imgQrCode);
+        indicatorStatus = findViewById(R.id.indicatorStatus);
+        chkProtectDelete = findViewById(R.id.chkProtectDelete);
+        edtDeletePassword = findViewById(R.id.edtDeletePassword);
+
+        prefs = getSharedPreferences("app_security", MODE_PRIVATE);
+        deleteProtectionEnabled = prefs.getBoolean("protect_delete", false);
+        deletePassword = prefs.getString("delete_password", "1234");
+        chkProtectDelete.setChecked(deleteProtectionEnabled);
+        edtDeletePassword.setText(deletePassword);
+        edtDeletePassword.setEnabled(deleteProtectionEnabled);
+
+        chkProtectDelete.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            deleteProtectionEnabled = isChecked;
+            edtDeletePassword.setEnabled(isChecked);
+            prefs.edit().putBoolean("protect_delete", isChecked).apply();
+        });
+        edtDeletePassword.setOnFocusChangeListener((v, hasFocus) -> {
+            if (!hasFocus) {
+                String newPass = edtDeletePassword.getText().toString().trim();
+                if (!newPass.isEmpty()) {
+                    deletePassword = newPass;
+                    prefs.edit().putString("delete_password", deletePassword).apply();
+                }
+            }
+        });
+
+        checkPermissions();
+        btnStartStop.setOnClickListener(v -> {
+            if (webServer == null) startServer();
+            else stopServer();
+        });
+        btnOpenBrowser.setOnClickListener(v -> {
+            if (webServer != null && currentIp != null) {
+                String url = "http://" + currentIp + ":" + PORT;
+                startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            } else {
+                Toast.makeText(this, "سرور روشن نیست", Toast.LENGTH_SHORT).show();
+            }
+        });
+        btnCopyUrl.setOnClickListener(v -> {
+            if (webServer != null && currentIp != null) {
+                String url = "http://" + currentIp + ":" + PORT;
+                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                android.content.ClipData clip = android.content.ClipData.newPlainText("Server URL", url);
+                clipboard.setPrimaryClip(clip);
+                Toast.makeText(this, "لینک کپی شد", Toast.LENGTH_SHORT).show();
+            } else {
+                Toast.makeText(this, "سرور روشن نیست", Toast.LENGTH_SHORT).show();
+            }
+        });
+
+        // نمایش تور آموزشی در اولین اجرا
+        showOnboardingIfNeeded();
+    }
+
+    private void showOnboardingIfNeeded() {
+        SharedPreferences tourPrefs = getSharedPreferences("app_tour", MODE_PRIVATE);
+        if (!tourPrefs.getBoolean("tour_done", false)) {
+            showOnboardingDialog();
+            tourPrefs.edit().putBoolean("tour_done", true).apply();
+        }
+    }
+
+    private void showOnboardingDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_onboarding, null);
+        builder.setView(dialogView);
+        builder.setCancelable(false);
+        AlertDialog dialog = builder.create();
+
+        TextView step1 = dialogView.findViewById(R.id.step1_text);
+        TextView step2 = dialogView.findViewById(R.id.step2_text);
+        TextView step3 = dialogView.findViewById(R.id.step3_text);
+        TextView step4 = dialogView.findViewById(R.id.step4_text);
+        Button btnGotIt = dialogView.findViewById(R.id.btnGotIt);
+
+        step1.setText("۱. روی یکی از گوشی‌ها (میزبان) «شروع سرور» را بزنید.\n⚠️ حتماً هات‌اسپات یا وای‌فای مشترک روشن باشد.");
+        step2.setText("۲. گوشی دیگر (مهمان) به همان شبکه وصل شود.\n📡 نیازی به اینترنت نیست، فقط اتصال محلی.");
+        step3.setText("۳. آدرس (مثلاً http://192.168.x.x:8080) یا QR کد را اسکن کند.\n🌐 آدرس در بالای صفحه نمایش داده می‌شود.");
+        step4.setText("۴. مهمان در مرورگر خود فایل را آپلود می‌کند.\n📁 فایل‌ها در حافظه میزبان ذخیره می‌شوند.\n🔐 اگر حذف با رمز فعال باشد، مهمان فقط می‌تواند دانلود کند.");
+
+        btnGotIt.setOnClickListener(v -> dialog.dismiss());
+        dialog.show();
+    }
+
+    private void checkPermissions() {
+        String[] permissions = {
+                Manifest.permission.INTERNET,
+                Manifest.permission.ACCESS_WIFI_STATE,
+                Manifest.permission.ACCESS_NETWORK_STATE,
+                Manifest.permission.WRITE_EXTERNAL_STORAGE,
+                Manifest.permission.READ_EXTERNAL_STORAGE
+        };
+        List<String> need = new ArrayList<>();
+        for (String p : permissions) {
+            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED)
+                need.add(p);
+        }
+        if (!need.isEmpty()) {
+            ActivityCompat.requestPermissions(this, need.toArray(new String[0]), 100);
+        }
+    }
+
+    private List<String> getAllLocalIps() {
+        List<String> ips = new ArrayList<>();
+        try {
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                if (iface.isLoopback() || !iface.isUp()) continue;
+                Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    if (addr instanceof java.net.Inet4Address && !addr.isLoopbackAddress()) {
+                        String ip = addr.getHostAddress();
+                        if (!ip.equals("0.0.0.0") && !ip.startsWith("127."))
+                            ips.add(ip);
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+        if (ips.isEmpty()) {
+            WifiManager wm = (WifiManager) getApplicationContext().getSystemService(WIFI_SERVICE);
+            if (wm != null) {
+                int ipInt = wm.getConnectionInfo().getIpAddress();
+                if (ipInt != 0) ips.add(Formatter.formatIpAddress(ipInt));
+            }
+        }
+        return ips;
+    }
+
+    private void startServer() {
+        List<String> ips = getAllLocalIps();
+        if (ips.isEmpty()) {
+            Toast.makeText(this, "خطا: آی‌پی پیدا نشد! وای‌فای یا هات‌اسپات روشن است؟", Toast.LENGTH_LONG).show();
+            showManualIpHelp();
+            return;
+        }
+        if (ips.size() > 1) {
+            chooseIpFromList(ips);
+        } else {
+            currentIp = ips.get(0);
+            startServerWithIp(currentIp);
+        }
+    }
+
+    private void chooseIpFromList(List<String> ips) {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("انتخاب آی‌پی مورد نظر");
+        builder.setItems(ips.toArray(new String[0]), (dialog, which) -> {
+            currentIp = ips.get(which);
+            startServerWithIp(currentIp);
+        });
+        builder.setNegativeButton("راهنما", (d, w) -> showManualIpHelp());
+        builder.show();
+    }
+
+    private void showManualIpHelp() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("راهنمای پیدا کردن آی‌پی دستی");
+        builder.setMessage("1- به تنظیمات وای‌فای گوشی بروید.\n" +
+                "2- روی شبکه متصل شده ضربه بزنید.\n" +
+                "3- گزینه «جزئیات شبکه» یا «آی‌پی» را ببینید.\n" +
+                "4- اگر نتوانستید آی‌پی را پیدا کنید شما به هات اسپات نفر مقابل وصل شوید و مجددا در همین گوشی شروع سرور را بزنید.\n" +
+                "5- اگر چند آی‌پی میبینید ممکن است همه یا بعضی از آن ها کار کنند، امتحان کنید تا ببینید کدام یک صحیح است.\n" +
+                "⚠️ اطمینان حاصل کنید هات‌اسپات روشن است یا هر دو گوشی به یک وای‌فای وصل هستند.");
+        builder.setPositiveButton("باشه", null);
+        builder.show();
+    }
+
+    private void startServerWithIp(String ip) {
+        currentIp = ip;
+        txtLocalIp.setText(currentIp);
+        String url = "http://" + currentIp + ":" + PORT;
+        txtServerUrl.setText(url);
+        generateQrCode(url);
+
+        try {
+            File storageDir = new File(getExternalFilesDir(null), "SharedFiles");
+            if (!storageDir.exists()) storageDir.mkdirs();
+
+            webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword);
+            webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
+            updateServerUi(true);
+            Toast.makeText(this, "سرور شروع شد: " + url, Toast.LENGTH_LONG).show();
+
+            mainHandler.postDelayed(() -> {
+                if (webServer != null && currentIp != null) {
+                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+                }
+            }, 500);
+
+            mainHandler.postDelayed(clientUpdater, 2000);
+        } catch (IOException e) {
+            e.printStackTrace();
+            Toast.makeText(this, "خطا در شروع سرور", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    private void stopServer() {
+        if (webServer != null) {
+            webServer.stop();
+            webServer = null;
+            updateServerUi(false);
+            Toast.makeText(this, "سرور متوقف شد", Toast.LENGTH_SHORT).show();
+            mainHandler.removeCallbacks(clientUpdater);
+            connectedClients.clear();  // پاک کردن لیست کاربران
+            txtClientsCount.setText("0");
+        }
+    }
+
+    private void updateServerUi(boolean isRunning) {
+        if (isRunning) {
+            txtStatus.setText("فعال ✅");
+            btnStartStop.setText("توقف سرور");
+            indicatorStatus.setBackgroundResource(R.drawable.indicator_on);
+            btnOpenBrowser.setEnabled(true);
+            btnCopyUrl.setEnabled(true);
+        } else {
+            txtStatus.setText("خاموش ❌");
+            btnStartStop.setText("شروع سرور");
+            indicatorStatus.setBackgroundResource(R.drawable.indicator_off);
+            txtServerUrl.setText("---");
+            btnOpenBrowser.setEnabled(false);
+            btnCopyUrl.setEnabled(false);
+        }
+    }
+
+    private void generateQrCode(String text) {
+        try {
+            BitMatrix matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, 300, 300);
+            Bitmap bitmap = Bitmap.createBitmap(300, 300, Bitmap.Config.RGB_565);
+            for (int x = 0; x < 300; x++) {
+                for (int y = 0; y < 300; y++) {
+                    bitmap.setPixel(x, y, matrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
+                }
+            }
+            imgQrCode.setImageBitmap(bitmap);
+        } catch (WriterException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void updateClientsDisplay() {
+        mainHandler.post(() -> {
+            long now = System.currentTimeMillis();
+            // حذف کاربرانی که بیش از 10 ثانیه به روز نشده‌اند
+            connectedClients.entrySet().removeIf(entry -> now - entry.getValue().lastSeen > 10000);
+            txtClientsCount.setText(String.valueOf(connectedClients.size()));
+        });
+    }
+
+    private Runnable clientUpdater = new Runnable() {
+        @Override
+        public void run() {
+            if (webServer != null) {
+                updateClientsDisplay();
+                mainHandler.postDelayed(this, 2000);
+            }
+        }
+    };
+
+    // ==================== کلاس سرور ====================
+    private class FileServer extends NanoHTTPD {
+        private final File rootDir;
+        private final boolean protectDelete;
+        private final String password;
+
+        public FileServer(int port, File storageDir, boolean protectDelete, String password) {
+            super(port);
+            this.rootDir = storageDir;
+            this.protectDelete = protectDelete;
+            this.password = password;
+        }
+
+        @Override
+        public Response serve(IHTTPSession session) {
+            String uri = session.getUri();
+            String ip = session.getRemoteIpAddress();
+
+            // دریافت نام کاربر و OS از پارامترهای درخواست
+            Map<String, String> params = session.getParms();
+            String clientName = params.get("clientName");
+            String clientOS = params.get("clientOS");
+
+            if (clientName != null && !clientName.isEmpty()) {
+                ClientInfo info = connectedClients.get(ip);
+                if (info == null) {
+                    info = new ClientInfo(clientName, clientOS != null ? clientOS : "ناشناس");
+                    connectedClients.put(ip, info);
+                } else {
+                    info.name = clientName;
+                    if (clientOS != null) info.os = clientOS;
+                    info.updateSeen();
+                }
+            } else {
+                // به روزرسانی زمان اتصال برای کلاینت‌های قدیمی
+                ClientInfo info = connectedClients.get(ip);
+                if (info != null) {
+                    info.updateSeen();
+                } else {
+                    // اگر نام نداشت، یک نام پیش‌فرض بگذار
+                    connectedClients.put(ip, new ClientInfo("کاربر " + ip, "ناشناس"));
+                }
+            }
+
+            // API دریافت لیست فایل‌ها و کاربران
+            if ("/api/files".equals(uri)) {
+                String json = getFilesAndClientsJson();
+                return newFixedLengthResponse(Response.Status.OK, "application/json", json);
+            }
+
+            // دانلود
+            if (uri.startsWith("/download")) {
+                Map<String, String> params2 = session.getParms();
+                String fileName = params2.get("file");
+                if (fileName != null) {
+                    File file = new File(rootDir, fileName);
+                    if (file.exists() && !file.isDirectory()) {
+                        try {
+                            FileInputStream fis = new FileInputStream(file);
+                            Response res = newFixedLengthResponse(Response.Status.OK, "application/octet-stream", fis, (int) file.length());
+                            res.addHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
+                            res.addHeader("Accept-Ranges", "bytes");
+                            return res;
+                        } catch (FileNotFoundException e) { e.printStackTrace(); }
+                    }
+                }
+                return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "فایل یافت نشد");
+            }
+
+            // آپلود
+            if ("/upload".equals(uri) && Method.POST.equals(session.getMethod())) {
+                try {
+                    Map<String, String> files = new HashMap<>();
+                    session.parseBody(files);
+                    String tempFilePath = files.get("file");
+                    if (tempFilePath != null) {
+                        File tempFile = new File(tempFilePath);
+                        String originalFileName = session.getParms().get("file");
+                        if (originalFileName == null || originalFileName.isEmpty())
+                            originalFileName = tempFile.getName();
+                        File destFile = new File(rootDir, originalFileName);
+                        if (tempFile.renameTo(destFile)) {
+                            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+                        } else {
+                            try (FileInputStream fis = new FileInputStream(tempFile);
+                                 FileOutputStream fos = new FileOutputStream(destFile)) {
+                                byte[] buffer = new byte[8192];
+                                int length;
+                                while ((length = fis.read(buffer)) > 0) fos.write(buffer, 0, length);
+                            }
+                            tempFile.delete();
+                            return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+                        }
+                    }
+                } catch (Exception e) { e.printStackTrace(); }
+                return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "آپلود ناموفق");
+            }
+
+            // حذف یک فایل
+            if ("/delete".equals(uri) && Method.POST.equals(session.getMethod())) {
+                Map<String, String> params2 = session.getParms();
+                String fileName = params2.get("fileName");
+                String providedPass = params2.get("password");
+                if (protectDelete && (providedPass == null || !providedPass.equals(password))) {
+                    return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json", "{\"error\":\"رمز اشتباه است\"}");
+                }
+                if (fileName != null) {
+                    new File(rootDir, fileName).delete();
+                    return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+                }
+                return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "نام فایل ارسال نشده");
+            }
+
+            // حذف همه
+            if ("/delete-all".equals(uri) && Method.POST.equals(session.getMethod())) {
+                Map<String, String> params2 = session.getParms();
+                String providedPass = params2.get("password");
+                if (protectDelete && (providedPass == null || !providedPass.equals(password))) {
+                    return newFixedLengthResponse(Response.Status.UNAUTHORIZED, "application/json", "{\"error\":\"رمز اشتباه است\"}");
+                }
+                File[] files = rootDir.listFiles();
+                if (files != null) for (File f : files) f.delete();
+                return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
+            }
+
+            // صفحه اصلی
+            if ("/".equals(uri) || "/index.html".equals(uri)) {
+                String html = loadAsset("index.html");
+                if (html != null) {
+                    return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", html);
+                } else {
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "خطا در بارگذاری صفحه");
+                }
+            }
+
+            return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
+        }
+
+        private String getFilesAndClientsJson() {
+            StringBuilder sb = new StringBuilder("{\"files\":[");
+            File[] files = rootDir.listFiles();
+            SimpleDateFormat sdf = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale.getDefault());
+            long totalSize = 0;
+            int fileCount = 0;
+            if (files != null) {
+                for (int i = 0; i < files.length; i++) {
+                    if (i > 0) sb.append(",");
+                    sb.append("{")
+                            .append("\"name\":\"").append(escapeJson(files[i].getName())).append("\",")
+                            .append("\"size\":").append(files[i].length()).append(",")
+                            .append("\"modified\":\"").append(sdf.format(new Date(files[i].lastModified()))).append("\"")
+                            .append("}");
+                    totalSize += files[i].length();
+                    fileCount++;
+                }
+            }
+            sb.append("],\"clients\":[");
+            boolean first = true;
+            long now = System.currentTimeMillis();
+            for (Map.Entry<String, ClientInfo> entry : connectedClients.entrySet()) {
+                if (now - entry.getValue().lastSeen > 10000) continue;
+                if (!first) sb.append(",");
+                sb.append("{")
+                        .append("\"name\":\"").append(escapeJson(entry.getValue().name)).append("\",")
+                        .append("\"ip\":\"").append(entry.getKey()).append("\",")
+                        .append("\"os\":\"").append(escapeJson(entry.getValue().os)).append("\"")
+                        .append("}");
+                first = false;
+            }
+            sb.append("],\"totalFiles\":").append(fileCount);
+            sb.append(",\"totalSize\":").append(totalSize);
+            sb.append(",\"protectDelete\":").append(protectDelete);
+            sb.append("}");
+            return sb.toString();
+        }
+
+        private String escapeJson(String s) {
+            if (s == null) return "";
+            return s.replace("\\", "\\\\").replace("\"", "\\\"").replace("\n", "\\n").replace("\r", "\\r");
+        }
+
+        private String loadAsset(String filename) {
+            try (InputStream is = getAssets().open(filename)) {
+                ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                byte[] buffer = new byte[4096];
+                int len;
+                while ((len = is.read(buffer)) != -1) baos.write(buffer, 0, len);
+                return baos.toString("UTF-8");
+            } catch (IOException e) {
+                e.printStackTrace();
+                return null;
+            }
+        }
+    }
+}

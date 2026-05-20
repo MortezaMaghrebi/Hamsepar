@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:padding="24dp"
+    android:background="#1E293B">
+
+    <TextView
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="🎓 آموزش استفاده از همسپار"
+        android:textSize="20sp"
+        android:textColor="#FFD966"
+        android:textStyle="bold"
+        android:layout_marginBottom="20dp" />
+
+    <TextView
+        android:id="@+id/step1_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#E2E8F0"
+        android:lineSpacingExtra="6dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/step2_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#E2E8F0"
+        android:lineSpacingExtra="6dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/step3_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#E2E8F0"
+        android:lineSpacingExtra="6dp"
+        android:layout_marginBottom="16dp" />
+
+    <TextView
+        android:id="@+id/step4_text"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text=""
+        android:textColor="#E2E8F0"
+        android:lineSpacingExtra="6dp"
+        android:layout_marginBottom="24dp" />
+
+    <Button
+        android:id="@+id/btnGotIt"
+        android:layout_width="match_parent"
+        android:layout_height="48dp"
+        android:text="متوجه شدم"
+        android:backgroundTint="#10B981"
+        android:textStyle="bold"
+        app:cornerRadius="30dp" />
+</LinearLayout>

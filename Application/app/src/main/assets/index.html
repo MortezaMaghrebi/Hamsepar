@@ -1,0 +1,293 @@
+<!DOCTYPE html>
+<html lang="fa" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>همسپار - اشتراک فایل</title>
+    <style>
+        * { margin:0; padding:0; box-sizing: border-box; }
+        body { background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; padding: 20px; min-height: 100vh; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        .header { text-align: center; color: white; margin-bottom: 30px; }
+        .my-info { background: rgba(255,255,255,0.2); border-radius: 50px; padding: 8px 16px; display: inline-block; margin-top: 10px; font-size: 0.9rem; }
+        .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 25px; }
+        .card { background: rgba(255,255,255,0.95); border-radius: 25px; padding: 20px; box-shadow: 0 15px 35px rgba(0,0,0,0.2); transition: transform 0.2s; }
+        .card:hover { transform: translateY(-5px); }
+        .card h2 { color: #4a5568; border-bottom: 3px solid #667eea; display: inline-block; padding-bottom: 8px; margin-bottom: 20px; }
+        .upload-area { border: 2px dashed #667eea; border-radius: 20px; padding: 40px 20px; text-align: center; cursor: pointer; transition: all 0.3s; background: #f8f9ff; }
+        .upload-area:hover { background: #eef2ff; border-color: #764ba2; }
+        .upload-area.drag-over { background: #e0e7ff; border-color: #4c51bf; }
+        .file-list, .client-list { max-height: 400px; overflow-y: auto; }
+        .file-item, .client-item { display: flex; justify-content: space-between; align-items: center; background: #f1f5f9; padding: 12px; margin: 8px 0; border-radius: 15px; flex-wrap: wrap; }
+        .file-name { flex: 2; word-break: break-all; font-weight: 500; }
+        .file-size { font-size: 0.75rem; color: #4a5568; margin: 0 10px; }
+        .client-item { flex-direction: column; align-items: flex-start; gap: 5px; }
+        .client-name { font-weight: bold; color: #2d3748; }
+        .client-ip { font-size: 0.7rem; color: #718096; direction: ltr; text-align: left; }
+        .client-os { font-size: 0.7rem; color: #4a5568; }
+        .btn-download, .btn-delete { border: none; padding: 6px 12px; border-radius: 20px; cursor: pointer; font-size: 0.75rem; font-weight: bold; margin-left: 6px; text-decoration: none; display: inline-block; }
+        .btn-download { background: #10b981; color: white; }
+        .btn-delete { background: #ef4444; color: white; }
+        .btn-delete-all { background: #f59e0b; color: white; border: none; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-weight: bold; margin-top: 15px; width: 100%; }
+        .progress-bar { width: 100%; height: 6px; background: #ddd; border-radius: 3px; margin-top: 15px; display: none; overflow: hidden; }
+        .progress-fill { width: 0%; height: 100%; background: #10b981; transition: width 0.2s; }
+        .stats { background: #f1f5f9; padding: 12px; border-radius: 18px; margin-top: 20px; text-align: center; font-size: 0.9rem; }
+        .guide { background: #fef9c3; border-right: 5px solid #eab308; padding: 15px; border-radius: 16px; margin-top: 20px; }
+        .footer { text-align: center; margin-top: 30px; color: white; font-size: 0.8rem; }
+        @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
+    </style>
+</head>
+<body>
+<div class="container">
+    <div class="header">
+        <h1>📁 همسپار | اشتراک‌گذار فایل</h1>
+        <p>انتقال فایل بدون نصب برنامه روی دستگاه گیرنده – فقط مرورگر</p>
+        <p style="font-size:0.9rem; background:rgba(0,0,0,0.3); display:inline-block; padding:5px 15px; border-radius:50px;">✅ بدون نیاز به اینترنت | فقط وای‌فای یا هات‌اسپات مشترک</p>
+        <div class="my-info" id="myInfo"></div>
+    </div>
+
+    <div class="grid">
+        <div class="card">
+            <h2>📤 آپلود فایل</h2>
+            <div class="upload-area" id="uploadArea">
+                📂 کلیک کنید یا فایل را بکشید اینجا
+                <br><small>هر حجمی، هر نوع فایلی</small>
+                <input type="file" id="fileInput" style="display:none" multiple>
+            </div>
+            <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+            <div class="stats" id="stats"></div>
+        </div>
+
+        <div class="card">
+            <h2>📋 فایل‌های روی سرور</h2>
+            <div class="file-list" id="fileList">در حال بارگذاری...</div>
+            <button class="btn-delete-all" id="deleteAllBtn">🗑️ حذف همه فایل‌ها</button>
+        </div>
+
+        <div class="card">
+            <h2>👥 کاربران متصل</h2>
+            <div class="client-list" id="clientList"></div>
+        </div>
+
+        <div class="card">
+            <h2>ℹ️ راهنما</h2>
+            <div class="guide">
+                <p>✅ <strong>نحوه اتصال:</strong></p>
+                <p>۱- میزبان دکمه «شروع سرور» را بزند (هات‌اسپات یا وای‌فای مشترک روشن باشد).</p>
+                <p>۲- دستگاه دیگر به همان شبکه متصل شود (بدون نیاز به اینترنت).</p>
+                <p>۳- آدرس زیر یا QR کد را در مرورگر باز کند.</p>
+                <p>🔗 <strong>آدرس سرور:</strong> <span id="serverUrl" style="color:#2563eb; word-break:break-all;"></span></p>
+                <button id="copyUrlBtn" style="margin-top:8px; background:#3b82f6; border:none; padding:6px 12px; border-radius:30px; color:white;">📋 کپی لینک</button>
+                <p>📱 <a href="#" id="openLocalBrowser" style="color:#2563eb;">باز کردن در همین گوشی</a></p>
+                <p>⚠️ اگر آدرس کار نکرد، آی‌پی را از تنظیمات وای‌فای گوشی میزبان پیدا کنید (مثلاً 192.168.43.1:8080).</p>
+            </div>
+        </div>
+    </div>
+    <div class="footer">انتقال امن در شبکه محلی - بدون نیاز به اینترنت</div>
+</div>
+
+<script>
+    let refreshInterval;
+    let deleteProtection = false;
+
+    // ========== نام یکتا و سیستم عامل ==========
+    function getOrCreateUniqueName() {
+    let uniqueName = localStorage.getItem('uniqueUserName');
+    if (!uniqueName) {
+        // لیست ۵۰ نام یکتا فارسی (غیرانسانی)
+        const persianNames = [
+            "آذرگون", "بارانک", "پونه‌سا", "تیسفون", "جادوک", "چکاد", "خاوران", "دماوند",
+            "دیباچه", "راشا", "زاینده", "ژرفا", "سایه‌سان", "شبنما", "صباورد", "طلسمک",
+            "ظلمت‌زدا", "عطرا", "غزل‌سرا", "فرفره", "ققنوس", "کاروان‌سالار", "گندومک",
+            "لاله‌دشت", "مهتابک", "نارنجک", "وروجک", "هامون", "یخبندان", "ابریشمک", "پرنیان",
+            "تارا", "جیرجیرک", "چلیپا", "خزه‌زار", "درفش", "دیرین", "زبرجد", "ژاله‌پوش",
+            "سحرخیز", "شبچره", "شنگرف", "صرصر", "عقیق", "غراب", "فولادزره", "کج‌کلاه",
+            "گرزدار", "لرزانک", "مینو"
+        ];
+
+        // لیست ایموجی‌ها
+        const emojis = ["😀", "😎", "🦁", "🐘", "🦊", "🐼", "🐧", "🦜", "⭐", "🌙",
+                        "🔥", "💎", "🎈", "🍕", "⚽", "🎵", "📚", "🚀", "🌈", "🍎"];
+
+        // انتخاب تصادفی یک نام فارسی و یک ایموجی
+        const randomName = persianNames[Math.floor(Math.random() * persianNames.length)];
+        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+
+        // ترکیب نهایی: فقط یک کلمه + یک ایموجی (بدون فاصله اضافی)
+        uniqueName = `${randomName} ${randomEmoji}`;
+        localStorage.setItem('uniqueUserName', uniqueName);
+    }
+    return uniqueName;
+}
+
+    function detectOS() {
+        const userAgent = navigator.userAgent;
+        if (/windows/i.test(userAgent)) return "Windows";
+        if (/mac/i.test(userAgent)) return "macOS";
+        if (/linux/i.test(userAgent)) return "Linux";
+        if (/android/i.test(userAgent)) return "Android";
+        if (/iphone|ipad|ipod/i.test(userAgent)) return "iOS";
+        return "سایر";
+    }
+
+    const MY_UNIQUE_NAME = getOrCreateUniqueName();
+    const MY_OS = detectOS();
+
+    // نمایش اطلاعات کاربر در هدر
+    document.getElementById('myInfo').innerHTML = `👤 ${MY_UNIQUE_NAME} | 💻 ${MY_OS}`;
+
+    // ========== تابع بارگذاری اطلاعات از سرور ==========
+    async function loadData() {
+        try {
+            const url = `/api/files?clientName=${encodeURIComponent(MY_UNIQUE_NAME)}&clientOS=${encodeURIComponent(MY_OS)}&_=${Date.now()}`;
+            const res = await fetch(url);
+            const data = await res.json();
+
+            deleteProtection = data.protectDelete === true;
+
+            const fileListDiv = document.getElementById('fileList');
+            if (!data.files || data.files.length === 0) {
+                fileListDiv.innerHTML = '<p style="color:#6b7280;">هیچ فایلی وجود ندارد</p>';
+            } else {
+                fileListDiv.innerHTML = data.files.map(f => `
+                    <div class="file-item">
+                        <span class="file-name">📄 ${escapeHtml(f.name)}</span>
+                        <span class="file-size">${formatSize(f.size)}</span>
+                        <div>
+                            <a href="/download?file=${encodeURIComponent(f.name)}" class="btn-download" download>دانلود</a>
+                            <button class="btn-delete" onclick="deleteFilePrompt('${escapeHtml(f.name)}')">حذف</button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+
+            document.getElementById('stats').innerHTML = `📊 تعداد فایل‌ها: <strong>${data.totalFiles || 0}</strong> | حجم کل: ${formatSize(data.totalSize || 0)}`;
+
+            const clientListDiv = document.getElementById('clientList');
+            if (!data.clients || data.clients.length === 0) {
+                clientListDiv.innerHTML = '<p style="color:#6b7280;">هیچ کاربر متصلی نیست</p>';
+            } else {
+                clientListDiv.innerHTML = data.clients.map(c => `
+                    <div class="client-item">
+                        <div class="client-name">👤 ${escapeHtml(c.name)}</div>
+                        <div class="client-ip">📡 ${c.ip}</div>
+                        <div class="client-os">💻 ${escapeHtml(c.os || 'ناشناس')}</div>
+                    </div>
+                `).join('');
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }
+
+    function formatSize(bytes) {
+        if (bytes === 0) return '0 B';
+        const k = 1024, sizes = ['B', 'KB', 'MB', 'GB'];
+        const i = Math.floor(Math.log(bytes) / Math.log(k));
+        return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+    }
+
+    function escapeHtml(str) {
+        const div = document.createElement('div');
+        div.textContent = str;
+        return div.innerHTML;
+    }
+
+    // ========== حذف فایل ==========
+    async function deleteFilePrompt(fileName) {
+        let password = '';
+        if (deleteProtection) {
+            //password = prompt('برای حذف فایل، رمز عبور را وارد کنید:');
+            //if (password === null) return;
+        }
+        const body = 'fileName=' + encodeURIComponent(fileName) + (password ? '&password=' + encodeURIComponent(password) : '');
+        const res = await fetch('/delete', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+        });
+        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.');
+        else loadData();
+    }
+
+    document.getElementById('deleteAllBtn').addEventListener('click', async () => {
+        let password = '';
+        if (deleteProtection) {
+            //password = prompt('برای حذف همه فایل‌ها، رمز عبور را وارد کنید:');
+            //if (password === null) return;
+        }
+        const body = password ? 'password=' + encodeURIComponent(password) : '';
+        const res = await fetch('/delete-all', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+            body
+        });
+        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.');
+        else loadData();
+    });
+
+    // ========== آپلود فایل ==========
+    async function uploadFiles(files) {
+        for (const file of files) {
+            const formData = new FormData();
+            formData.append('file', file);
+            const xhr = new XMLHttpRequest();
+            const progressBar = document.getElementById('progressBar');
+            const progressFill = document.getElementById('progressFill');
+            progressBar.style.display = 'block';
+
+            xhr.upload.addEventListener('progress', (e) => {
+                if (e.lengthComputable) {
+                    const percent = (e.loaded / e.total) * 100;
+                    progressFill.style.width = percent + '%';
+                }
+            });
+
+            xhr.onload = () => {
+                progressBar.style.display = 'none';
+                progressFill.style.width = '0%';
+                loadData();
+            };
+
+            xhr.onerror = () => {
+                alert('خطا در آپلود');
+                progressBar.style.display = 'none';
+            };
+
+            xhr.open('POST', `/upload?clientName=${encodeURIComponent(MY_UNIQUE_NAME)}&clientOS=${encodeURIComponent(MY_OS)}`);
+            xhr.send(formData);
+        }
+    }
+
+    // ========== رویدادهای آپلود ==========
+    const uploadArea = document.getElementById('uploadArea'), fileInput = document.getElementById('fileInput');
+    uploadArea.addEventListener('click', () => fileInput.click());
+    fileInput.addEventListener('change', (e) => uploadFiles(e.target.files));
+    uploadArea.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        uploadArea.classList.add('drag-over');
+    });
+    uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('drag-over'));
+    uploadArea.addEventListener('drop', (e) => {
+        e.preventDefault();
+        uploadArea.classList.remove('drag-over');
+        uploadFiles(e.dataTransfer.files);
+    });
+
+    // ========== راهنما ==========
+    document.getElementById('serverUrl').innerText = window.location.href;
+    document.getElementById('copyUrlBtn').addEventListener('click', () => {
+        navigator.clipboard.writeText(window.location.href);
+        alert('لینک کپی شد');
+    });
+    document.getElementById('openLocalBrowser').addEventListener('click', (e) => {
+        e.preventDefault();
+        window.location.href = window.location.href;
+    });
+
+    // ========== شروع ==========
+    loadData();
+    refreshInterval = setInterval(loadData, 2500);
+</script>
+</body>
+</html>
