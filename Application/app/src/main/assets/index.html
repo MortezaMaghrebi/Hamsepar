@@ -36,8 +36,7 @@
         .guide p { margin-bottom: 8px; }
         .qr-container { text-align: center; margin-top: 15px; padding: 15px; background: white; border-radius: 16px; }
         .qr-container p { margin-bottom: 10px; color: #4a5568; font-weight: bold; }
-        #qrcode { display: flex; justify-content: center; align-items: center; min-height: 180px; }
-        #qrcode img { margin: 0 auto; border-radius: 10px; max-width: 100%; height: auto; }
+        #qrImage { width: 180px; height: 180px; margin: 0 auto; display: block; border-radius: 10px; }
         .store-buttons { display: flex; gap: 15px; justify-content: center; margin-top: 15px; flex-wrap: wrap; }
         .store-btn { display: inline-flex; align-items: center; gap: 8px; background: #1f2937; color: white; text-decoration: none; padding: 10px 20px; border-radius: 50px; font-weight: bold; transition: transform 0.2s; }
         .store-btn:hover { transform: scale(1.05); }
@@ -48,7 +47,6 @@
         .note-text { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
         @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
     </style>
-    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -92,8 +90,8 @@
 
             <div class="qr-container">
                 <p>📱 اسکن QR برای اتصال سریع</p>
-                <div id="qrcode"></div>
-                <p class="note-text" id="fallbackNote" style="display:none; color:#ef4444;">⚠️ در صورت عدم نمایش QR، از لینک زیر استفاده کنید</p>
+                <img src="/qrcode.png" id="qrImage" alt="QR Code">
+                <p class="note-text" id="qrError" style="display:none; color:#ef4444;">⚠️ در صورت عدم نمایش QR، از لینک زیر استفاده کنید</p>
             </div>
 
             <div style="margin-top:12px; text-align:center;">
@@ -220,13 +218,13 @@
             headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
             body
         });
-        if (res.status === 401) alert('مجاز به پاک کردن نیستید');
+        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.);
         else loadData();
     }
 
     document.getElementById('deleteAllBtn').addEventListener('click', async () => {
         const res = await fetch('/delete-all', { method: 'POST' });
-        if (res.status === 401) alert('مجاز به پاک کردن نیستید');
+        if (res.status === 401) alert('مجاز به پاک کردن نیستید. در اپلیکیشن تیک عدم اجازه پاک کردن را بردارید.);
         else loadData();
     });
 
@@ -284,47 +282,14 @@
         alert('✅ لینک کپی شد');
     });
 
-    // تولید QR با fallback برای مرورگر موبایل
-    function generateQRCode() {
-        const qrcodeDiv = document.getElementById('qrcode');
-        qrcodeDiv.innerHTML = '';
-
-        // بررسی وجود کتابخانه QRCode
-        if (typeof QRCode === 'undefined') {
-            console.error('کتابخانه QR لود نشد');
-            qrcodeDiv.innerHTML = '<p style="color:#ef4444;">❌ خطا در بارگذاری QR</p><p style="font-size:12px;">از لینک دستی استفاده کنید</p>';
-            document.getElementById('fallbackNote').style.display = 'block';
-            return;
-        }
-
-        try {
-            new QRCode(qrcodeDiv, {
-                text: currentUrl,
-                width: 180,
-                height: 180,
-                colorDark: "#000000",
-                colorLight: "#ffffff",
-                correctLevel: QRCode.CorrectLevel.H
-            });
-
-            // بررسی اینکه آیا QR واقعاً تولید شده یا خیر
-            setTimeout(() => {
-                if (qrcodeDiv.innerHTML === '' || qrcodeDiv.querySelector('img') === null) {
-                    throw new Error('QR تولید نشد');
-                }
-            }, 100);
-
-        } catch (error) {
-            console.error('خطا در ساخت QR:', error);
-            qrcodeDiv.innerHTML = '<p style="color:#ef4444;">❌ امکان تولید QR در این مرورگر</p><p style="font-size:12px;">از لینک دستی استفاده کنید</p>';
-            document.getElementById('fallbackNote').style.display = 'block';
-        }
+    // بررسی بارگذاری QR
+    const qrImage = document.getElementById('qrImage');
+    if (qrImage) {
+        qrImage.onerror = function() {
+            document.getElementById('qrError').style.display = 'block';
+        };
     }
 
-    // تاخیر برای اطمینان از لود کامل کتابخانه
-    setTimeout(generateQRCode, 200);
-
-    // بارگذاری اولیه
     loadData();
     refreshInterval = setInterval(loadData, 2500);
 </script>

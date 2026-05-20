@@ -2,7 +2,6 @@ package com.codestoon.hamsepar;
 
 import android.Manifest;
 import android.content.Context;
-import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
@@ -13,7 +12,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
 import android.text.format.Formatter;
-import android.view.LayoutInflater;
 import android.view.View;
 import android.widget.Button;
 import android.widget.CheckBox;
@@ -22,7 +20,6 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
-import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -33,13 +30,14 @@ import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.ByteArrayOutputStream;
 import java.net.InetAddress;
 import java.net.NetworkInterface;
 import java.net.SocketException;
@@ -58,25 +56,18 @@ import fi.iki.elonen.NanoHTTPD;
 public class MainActivity extends AppCompatActivity {
 
     private static final int PORT = 8080;
-
-    // ====== تعریف static در سطح کلاس اصلی ======
     private static final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 
-    // کلاس ClientInfo به صورت static تعریف می‌شود
     private static class ClientInfo {
         String name;
         String os;
         long lastSeen;
-
         ClientInfo(String name, String os) {
             this.name = name;
             this.os = os;
             this.lastSeen = System.currentTimeMillis();
         }
-
-        void updateSeen() {
-            this.lastSeen = System.currentTimeMillis();
-        }
+        void updateSeen() { this.lastSeen = System.currentTimeMillis(); }
     }
 
     private TextView txtStatus, txtServerUrl, txtLocalIp, txtClientsCount;
@@ -89,8 +80,6 @@ public class MainActivity extends AppCompatActivity {
     private FileServer webServer;
     private String currentIp;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
-
-    // ذخیره تنظیمات امنیت
     private SharedPreferences prefs;
     private boolean deleteProtectionEnabled = false;
     private String deletePassword = "";
@@ -100,7 +89,6 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
-        // شناسایی ویجت‌ها
         txtStatus = findViewById(R.id.txtServerStatus);
         txtServerUrl = findViewById(R.id.txtServerUrl);
         txtLocalIp = findViewById(R.id.txtLocalIp);
@@ -125,6 +113,7 @@ public class MainActivity extends AppCompatActivity {
             edtDeletePassword.setEnabled(isChecked);
             prefs.edit().putBoolean("protect_delete", isChecked).apply();
         });
+
         edtDeletePassword.setOnFocusChangeListener((v, hasFocus) -> {
             if (!hasFocus) {
                 String newPass = edtDeletePassword.getText().toString().trim();
@@ -140,6 +129,7 @@ public class MainActivity extends AppCompatActivity {
             if (webServer == null) startServer();
             else stopServer();
         });
+
         btnOpenBrowser.setOnClickListener(v -> {
             if (webServer != null && currentIp != null) {
                 String url = "http://" + currentIp + ":" + PORT;
@@ -148,6 +138,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "سرور روشن نیست", Toast.LENGTH_SHORT).show();
             }
         });
+
         btnCopyUrl.setOnClickListener(v -> {
             if (webServer != null && currentIp != null) {
                 String url = "http://" + currentIp + ":" + PORT;
@@ -159,13 +150,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast.makeText(this, "سرور روشن نیست", Toast.LENGTH_SHORT).show();
             }
         });
-
-
     }
-
-
-
-
 
     private void checkPermissions() {
         String[] permissions = {
@@ -265,10 +250,9 @@ public class MainActivity extends AppCompatActivity {
             File storageDir = new File(getExternalFilesDir(null), "SharedFiles");
             if (!storageDir.exists()) storageDir.mkdirs();
 
-            webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword);
+            webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword, currentIp);
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             updateServerUi(true);
-            //Toast.makeText(this, "سرور شروع شد: " + "\n"+url, Toast.LENGTH_LONG).show();
 
             mainHandler.postDelayed(() -> {
                 if (webServer != null && currentIp != null) {
@@ -290,7 +274,7 @@ public class MainActivity extends AppCompatActivity {
             updateServerUi(false);
             Toast.makeText(this, "سرور متوقف شد", Toast.LENGTH_SHORT).show();
             mainHandler.removeCallbacks(clientUpdater);
-            connectedClients.clear();  // پاک کردن لیست کاربران
+            connectedClients.clear();
             txtClientsCount.setText("0");
         }
     }
@@ -330,7 +314,6 @@ public class MainActivity extends AppCompatActivity {
     private void updateClientsDisplay() {
         mainHandler.post(() -> {
             long now = System.currentTimeMillis();
-            // حذف کاربرانی که بیش از 10 ثانیه به روز نشده‌اند
             connectedClients.entrySet().removeIf(entry -> now - entry.getValue().lastSeen > 10000);
             txtClientsCount.setText(String.valueOf(connectedClients.size()));
         });
@@ -351,12 +334,19 @@ public class MainActivity extends AppCompatActivity {
         private final File rootDir;
         private final boolean protectDelete;
         private final String password;
+        private final String serverIp;
 
-        public FileServer(int port, File storageDir, boolean protectDelete, String password) {
+        public FileServer(int port, File storageDir, boolean protectDelete, String password, String serverIp) {
             super(port);
             this.rootDir = storageDir;
             this.protectDelete = protectDelete;
             this.password = password;
+            this.serverIp = serverIp;
+        }
+
+        // متد کمکی برای ارسال پاسخ باینری
+        private Response newBinaryResponse(Response.Status status, String mimeType, byte[] data) {
+            return newFixedLengthResponse(status, mimeType, new ByteArrayInputStream(data), data.length);
         }
 
         @Override
@@ -364,7 +354,6 @@ public class MainActivity extends AppCompatActivity {
             String uri = session.getUri();
             String ip = session.getRemoteIpAddress();
 
-            // دریافت نام کاربر و OS از پارامترهای درخواست
             Map<String, String> params = session.getParms();
             String clientName = params.get("clientName");
             String clientOS = params.get("clientOS");
@@ -380,23 +369,33 @@ public class MainActivity extends AppCompatActivity {
                     info.updateSeen();
                 }
             } else {
-                // به روزرسانی زمان اتصال برای کلاینت‌های قدیمی
                 ClientInfo info = connectedClients.get(ip);
                 if (info != null) {
                     info.updateSeen();
                 } else {
-                    // اگر نام نداشت، یک نام پیش‌فرض بگذار
                     connectedClients.put(ip, new ClientInfo("کاربر " + ip, "ناشناس"));
                 }
             }
 
-            // API دریافت لیست فایل‌ها و کاربران
+            // QR Code image endpoint - راه حل اصلاح شده
+            if ("/qrcode.png".equals(uri)) {
+                String fullUrl = "http://" + serverIp + ":" + PORT;
+                Bitmap qrBitmap = generateQrBitmap(fullUrl, 200, 200);
+                if (qrBitmap != null) {
+                    ByteArrayOutputStream baos = new ByteArrayOutputStream();
+                    qrBitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
+                    byte[] imageBytes = baos.toByteArray();
+                    return newBinaryResponse(Response.Status.OK, "image/png", imageBytes);
+                } else {
+                    return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "QR generation failed");
+                }
+            }
+
             if ("/api/files".equals(uri)) {
                 String json = getFilesAndClientsJson();
                 return newFixedLengthResponse(Response.Status.OK, "application/json", json);
             }
 
-            // دانلود
             if (uri.startsWith("/download")) {
                 Map<String, String> params2 = session.getParms();
                 String fileName = params2.get("file");
@@ -407,15 +406,15 @@ public class MainActivity extends AppCompatActivity {
                             FileInputStream fis = new FileInputStream(file);
                             Response res = newFixedLengthResponse(Response.Status.OK, "application/octet-stream", fis, (int) file.length());
                             res.addHeader("Content-Disposition", "attachment; filename=\"" + fileName + "\"");
-                            res.addHeader("Accept-Ranges", "bytes");
                             return res;
-                        } catch (FileNotFoundException e) { e.printStackTrace(); }
+                        } catch (FileNotFoundException e) {
+                            e.printStackTrace();
+                        }
                     }
                 }
                 return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "فایل یافت نشد");
             }
 
-            // آپلود
             if ("/upload".equals(uri) && Method.POST.equals(session.getMethod())) {
                 try {
                     Map<String, String> files = new HashMap<>();
@@ -440,11 +439,12 @@ public class MainActivity extends AppCompatActivity {
                             return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
                         }
                     }
-                } catch (Exception e) { e.printStackTrace(); }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
                 return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "آپلود ناموفق");
             }
 
-            // حذف یک فایل
             if ("/delete".equals(uri) && Method.POST.equals(session.getMethod())) {
                 Map<String, String> params2 = session.getParms();
                 String fileName = params2.get("fileName");
@@ -459,7 +459,6 @@ public class MainActivity extends AppCompatActivity {
                 return newFixedLengthResponse(Response.Status.BAD_REQUEST, "text/plain", "نام فایل ارسال نشده");
             }
 
-            // حذف همه
             if ("/delete-all".equals(uri) && Method.POST.equals(session.getMethod())) {
                 Map<String, String> params2 = session.getParms();
                 String providedPass = params2.get("password");
@@ -471,7 +470,6 @@ public class MainActivity extends AppCompatActivity {
                 return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
             }
 
-            // صفحه اصلی
             if ("/".equals(uri) || "/index.html".equals(uri)) {
                 String html = loadAsset("index.html");
                 if (html != null) {
@@ -482,6 +480,22 @@ public class MainActivity extends AppCompatActivity {
             }
 
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
+        }
+
+        private Bitmap generateQrBitmap(String text, int width, int height) {
+            try {
+                BitMatrix matrix = new QRCodeWriter().encode(text, BarcodeFormat.QR_CODE, width, height);
+                Bitmap bitmap = Bitmap.createBitmap(width, height, Bitmap.Config.RGB_565);
+                for (int x = 0; x < width; x++) {
+                    for (int y = 0; y < height; y++) {
+                        bitmap.setPixel(x, y, matrix.get(x, y) ? 0xFF000000 : 0xFFFFFFFF);
+                    }
+                }
+                return bitmap;
+            } catch (WriterException e) {
+                e.printStackTrace();
+                return null;
+            }
         }
 
         private String getFilesAndClientsJson() {
