@@ -57,13 +57,13 @@ import fi.iki.elonen.NanoHTTPD;
 
 public class MainActivity extends AppCompatActivity {
     private BillingManager billingManager;
-
-    // در متد onCreate، بعد از initViews() اضافه کنید
-    private void initBilling() {
-        billingManager = BillingManager.getInstance(this);
-        billingManager.initializeBilling();
-    }
     private static final int PORT = 8080;
+    private static final long MAX_FREE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
+    private static final String PREF_UPLOAD_COUNT = "upload_success_count";
+    private static final String PREF_RATING_DIALOG_SHOWN = "rating_dialog_shown";
+    private static final String PREF_RATING_DIALOG_LAST_TIME = "rating_dialog_last_time";
+    private static final int PROMPT_COMMENT_THRESHOLD = 2; // بعد از 2 آپلود موفق
+
     private static final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 
     private static class ClientInfo {
@@ -163,18 +163,74 @@ public class MainActivity extends AppCompatActivity {
         initBilling();
     }
 
-    void initFooterButtons()
-    {
-        // دکمه ادامه تماشا با انیمیشن
+    private void initBilling() {
+        billingManager = BillingManager.getInstance(this);
+        billingManager.initializeBilling();
+    }
+
+    private void showRatingDialog() {
+        if (isFinishing() || isDestroyed()) return;
+
+        // بررسی اگر قبلاً دیالوگ نمایش داده شده
+        if (prefs.getBoolean(PREF_RATING_DIALOG_SHOWN, false)) return;
+
+        // بررسی زمان آخرین نمایش دیالوگ - اگر کمتر از 24 ساعت گذشته باشد، نمایش نده
+        long lastDialogTime = prefs.getLong(PREF_RATING_DIALOG_LAST_TIME, 0);
+        long currentTime = System.currentTimeMillis();
+        long twentyFourHoursInMillis = 24 * 60 * 60 * 1000; // 24 ساعت
+
+        if (lastDialogTime > 0 && (currentTime - lastDialogTime) < twentyFourHoursInMillis) {
+            // کمتر از 24 ساعت گذشته، دیالوگ را نشان نده
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("✨ تجربه خوبی داشتید؟")
+                .setMessage("از اینکه از همسپار استفاده می‌کنید خوشحالیم. آیا مایل به ثبت نظر و حمایت از ما در بازار هستید؟")
+                .setPositiveButton("👍 بله، نظر میدم", (dialog, which) -> {
+                    try {
+                        StoreIntents.openStoreForComment(MainActivity.this);
+                        // بعد از کلیک روی نظر، دیگه دیالوگ رو نشون نده (برای همیشه)
+                        prefs.edit().putBoolean(PREF_RATING_DIALOG_SHOWN, true).apply();
+                    } catch (Exception e) {
+                        Toast.makeText(MainActivity.this, "خطا در باز کردن بازار", Toast.LENGTH_SHORT).show();
+                    }
+                })
+                .setNegativeButton("🙏 بعداً یادآوری کن", (dialog, which) -> {
+                    // ذخیره زمان حال برای یادآوری بعد از 24 ساعت
+                    prefs.edit().putLong(PREF_RATING_DIALOG_LAST_TIME, System.currentTimeMillis()).apply();
+                })
+                .setCancelable(true)
+                .show();
+    }
+
+    private void incrementUploadCounter() {
+        int count = prefs.getInt(PREF_UPLOAD_COUNT, 0);
+        count++;
+        prefs.edit().putInt(PREF_UPLOAD_COUNT, count).apply();
+
+        // بعد از رسیدن به آستانه، دیالوگ نظر را نشان بده (فقط برای کاربران غیر پریمیوم)
+        if (count >= PROMPT_COMMENT_THRESHOLD && billingManager != null && !billingManager.isPremiumActivated()) {
+            showRatingDialog();
+        }
+    }
+
+    public void restartServerAfterPurchase() {
+        if (webServer != null) {
+            stopServer();
+            // کمی تاخیر برای بسته شدن کامل سوکت
+            new Handler(Looper.getMainLooper()).postDelayed(this::startServer, 500);
+        }
+    }
+
+    void initFooterButtons() {
         View showVideosBtn = findViewById(R.id.continueWatchingButton);
         if (showVideosBtn != null) {
             showVideosBtn.setOnClickListener(v -> {
                 animateButton(v);
-                //ShowLastShownSerial();
             });
         }
 
-        // دکمه نظر دادن با انیمیشن
         View commentBtn = findViewById(R.id.commentButton);
         if (commentBtn != null) {
             commentBtn.setOnClickListener(v -> {
@@ -184,7 +240,6 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // دکمه نسخه ویژه با انیمیشن
         View premiumBtn = findViewById(R.id.premiumButton);
         if (premiumBtn != null) {
             premiumBtn.setOnClickListener(v -> {
@@ -193,7 +248,6 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // دکمه سایر برنامه‌ها با انیمیشن
         View otherAppsBtn = findViewById(R.id.otherAppsButton);
         if (otherAppsBtn != null) {
             otherAppsBtn.setOnClickListener(v -> {
@@ -202,7 +256,6 @@ public class MainActivity extends AppCompatActivity {
             });
         }
 
-        // پیدا کردن FAB و تنظیم کلیک
         FloatingActionButton fabComment = findViewById(R.id.fabComment);
         if (fabComment != null) {
             fabComment.setOnClickListener(v -> {
@@ -228,17 +281,15 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void showPremiumPurchaseDialog() {
-        // اگر قبلاً پریمیوم شده
         if (billingManager != null && billingManager.isPremiumActivated()) {
             new AlertDialog.Builder(this)
                     .setTitle("🎁 شما کاربر ویژه هستید!")
-                    .setMessage("با تشکر از حمایت شما، تبلیغات برای همیشه حذف شده است.\n\nکودک شما می‌تواند بدون وقفه از کارتون‌ها لذت ببرد.")
+                    .setMessage("با تشکر از حمایت شما، می‌توانید فایل‌های با هر حجمی را انتقال دهید.\n\nکودک شما می‌تواند بدون وقفه از کارتون‌ها لذت ببرد.")
                     .setPositiveButton("باشه 😊", null)
                     .show();
             return;
         }
 
-        // دیالوگ خرید
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
         View view = LayoutInflater.from(this).inflate(R.layout.dialog_premium, null);
 
@@ -364,7 +415,8 @@ public class MainActivity extends AppCompatActivity {
             File storageDir = new File(getExternalFilesDir(null), "SharedFiles");
             if (!storageDir.exists()) storageDir.mkdirs();
 
-            webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword, currentIp);
+            boolean isUserPremium = (billingManager != null && billingManager.isPremiumActivated());
+            webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword, currentIp, isUserPremium);
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             updateServerUi(true);
 
@@ -449,16 +501,17 @@ public class MainActivity extends AppCompatActivity {
         private final boolean protectDelete;
         private final String password;
         private final String serverIp;
+        private final boolean isPremium;
 
-        public FileServer(int port, File storageDir, boolean protectDelete, String password, String serverIp) {
+        public FileServer(int port, File storageDir, boolean protectDelete, String password, String serverIp, boolean isPremium) {
             super(port);
             this.rootDir = storageDir;
             this.protectDelete = protectDelete;
             this.password = password;
             this.serverIp = serverIp;
+            this.isPremium = isPremium;
         }
 
-        // متد کمکی برای ارسال پاسخ باینری
         private Response newBinaryResponse(Response.Status status, String mimeType, byte[] data) {
             return newFixedLengthResponse(status, mimeType, new ByteArrayInputStream(data), data.length);
         }
@@ -491,7 +544,6 @@ public class MainActivity extends AppCompatActivity {
                 }
             }
 
-            // QR Code image endpoint - راه حل اصلاح شده
             if ("/qrcode.png".equals(uri)) {
                 String fullUrl = "http://" + serverIp + ":" + PORT;
                 Bitmap qrBitmap = generateQrBitmap(fullUrl, 200, 200);
@@ -536,11 +588,21 @@ public class MainActivity extends AppCompatActivity {
                     String tempFilePath = files.get("file");
                     if (tempFilePath != null) {
                         File tempFile = new File(tempFilePath);
+
+                        // بررسی حجم فایل برای کاربران غیر پریمیوم
+                        if (!isPremium && tempFile.length() > MAX_FREE_SIZE_BYTES) {
+                            tempFile.delete();
+                            return newFixedLengthResponse(Response.Status.FORBIDDEN, "application/json",
+                                    "{\"error\":\"حجم فایل بیش از 500 مگابایت است. برای آپلود فایل‌های بزرگتر، نسخه ویژه را تهیه کنید.\"}");
+                        }
+
                         String originalFileName = session.getParms().get("file");
                         if (originalFileName == null || originalFileName.isEmpty())
                             originalFileName = tempFile.getName();
                         File destFile = new File(rootDir, originalFileName);
                         if (tempFile.renameTo(destFile)) {
+                            // افزایش شمارنده آپلود موفق
+                            runOnUiThread(() -> incrementUploadCounter());
                             return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
                         } else {
                             try (FileInputStream fis = new FileInputStream(tempFile);
@@ -550,6 +612,8 @@ public class MainActivity extends AppCompatActivity {
                                 while ((length = fis.read(buffer)) > 0) fos.write(buffer, 0, length);
                             }
                             tempFile.delete();
+                            // افزایش شمارنده آپلود موفق
+                            runOnUiThread(() -> incrementUploadCounter());
                             return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
                         }
                     }
@@ -646,6 +710,7 @@ public class MainActivity extends AppCompatActivity {
             sb.append("],\"totalFiles\":").append(fileCount);
             sb.append(",\"totalSize\":").append(totalSize);
             sb.append(",\"protectDelete\":").append(protectDelete);
+            sb.append(",\"isPremium\":").append(isPremium);
             sb.append("}");
             return sb.toString();
         }

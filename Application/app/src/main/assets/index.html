@@ -46,6 +46,7 @@
         .footer { text-align: center; margin-top: 30px; color: white; font-size: 0.8rem; }
         .note-text { font-size: 0.75rem; color: #6b7280; margin-top: 8px; }
         .empty-message { color: #6b7280; text-align: center; padding: 20px; }
+        .premium-badge { background: linear-gradient(135deg, #f59e0b, #ef4444); color: white; padding: 4px 12px; border-radius: 20px; font-size: 0.7rem; display: inline-block; margin-right: 10px; }
         @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
     </style>
 </head>
@@ -60,7 +61,7 @@
 
     <div class="grid">
         <div class="card">
-            <h2>📤 آپلود فایل</h2>
+            <h2>📤 آپلود فایل <span id="premiumBadge" class="premium-badge" style="display:none;">نسخه ویژه ✨</span></h2>
             <div class="upload-area" id="uploadArea">
                 📂 کلیک کنید یا فایل را بکشید اینجا
                 <br><small>هر حجمی، هر نوع فایلی</small>
@@ -68,6 +69,9 @@
             </div>
             <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
             <div class="stats" id="stats"></div>
+            <div id="limitWarning" style="background:#fee2e2; padding:10px; border-radius:12px; margin-top:10px; display:none;">
+                ⚠️ کاربران عادی حداکثر 500 مگابایت میتوانند آپلود کنند. <a href="#" id="upgradeLink" style="color:#ef4444;">ارتقا به نسخه ویژه</a>
+            </div>
         </div>
 
         <div class="card">
@@ -120,6 +124,7 @@
 <script>
     let refreshInterval;
     let deleteProtection = false;
+    let isPremium = false;
 
     function getOrCreateUniqueName() {
         let uniqueName = localStorage.getItem('uniqueUserName');
@@ -163,8 +168,19 @@
             const res = await fetch(url);
             const data = await res.json();
             deleteProtection = data.protectDelete === true;
+            isPremium = data.isPremium === true;
+            
+            // نمایش یا مخفی کردن نشان پریمیوم
+            const premiumBadge = document.getElementById('premiumBadge');
+            const limitWarning = document.getElementById('limitWarning');
+            if (isPremium) {
+                premiumBadge.style.display = 'inline-block';
+                limitWarning.style.display = 'none';
+            } else {
+                premiumBadge.style.display = 'none';
+                limitWarning.style.display = 'block';
+            }
 
-            // نمایش فایل‌ها
             const fileListDiv = document.getElementById('fileList');
             if (!data.files || data.files.length === 0) {
                 fileListDiv.innerHTML = '<div class="empty-message">📂 هیچ فایلی وجود ندارد</div>';
@@ -183,7 +199,6 @@
 
             document.getElementById('stats').innerHTML = `📊 تعداد فایل‌ها: <strong>${data.totalFiles || 0}</strong> | حجم کل: ${formatSize(data.totalSize || 0)}`;
 
-            // نمایش کاربران متصل - اصلاح شده
             const clientListDiv = document.getElementById('clientList');
             if (!data.clients || data.clients.length === 0) {
                 clientListDiv.innerHTML = '<div class="empty-message">👥 هیچ کاربر متصلی نیست</div>';
@@ -236,8 +251,19 @@
         }
     });
 
+    document.getElementById('upgradeLink')?.addEventListener('click', (e) => {
+        e.preventDefault();
+        alert('لطفاً در اپلیکیشن روی دکمه نسخه ویژه کلیک کنید');
+    });
+
     async function uploadFiles(files) {
         for (const file of files) {
+            // بررسی سایز فایل در سمت کلاینت برای کاربران غیر پریمیوم
+            if (!isPremium && file.size > 500 * 1024 * 1024) {
+                alert(`فایل "${file.name}" حجمش ${formatSize(file.size)} هست که بیش از حد مجاز 500 مگابایت است.\nبرای آپلود فایل‌های بزرگتر، نسخه ویژه را تهیه کنید.`);
+                continue;
+            }
+            
             const formData = new FormData();
             formData.append('file', file);
             const xhr = new XMLHttpRequest();
@@ -252,10 +278,21 @@
                 }
             });
 
-            xhr.onload = () => {
+            xhr.onload = function() {
                 progressBar.style.display = 'none';
                 progressFill.style.width = '0%';
-                loadData();
+                if (xhr.status === 200) {
+                    loadData();
+                } else if (xhr.status === 403) {
+                    try {
+                        let errorJson = JSON.parse(xhr.responseText);
+                        alert(errorJson.error || "خطا در آپلود. لطفا نسخه ویژه را تهیه کنید.");
+                    } catch(e) {
+                        alert("حجم فایل بیش از حد مجاز است. برای آپلود فایل‌های بزرگتر، نسخه ویژه را تهیه کنید.");
+                    }
+                } else {
+                    alert('خطا در آپلود فایل');
+                }
             };
 
             xhr.onerror = () => {
@@ -290,7 +327,6 @@
         alert('✅ لینک کپی شد');
     });
 
-    // بررسی بارگذاری QR
     const qrImage = document.getElementById('qrImage');
     if (qrImage) {
         qrImage.onerror = function() {
