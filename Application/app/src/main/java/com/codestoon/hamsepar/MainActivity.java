@@ -160,39 +160,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // نمایش تور آموزشی در اولین اجرا
-        showOnboardingIfNeeded();
+
     }
 
-    private void showOnboardingIfNeeded() {
-        SharedPreferences tourPrefs = getSharedPreferences("app_tour", MODE_PRIVATE);
-        if (!tourPrefs.getBoolean("tour_done", false)) {
-            showOnboardingDialog();
-            tourPrefs.edit().putBoolean("tour_done", true).apply();
-        }
-    }
 
-    private void showOnboardingDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_onboarding, null);
-        builder.setView(dialogView);
-        builder.setCancelable(false);
-        AlertDialog dialog = builder.create();
 
-        TextView step1 = dialogView.findViewById(R.id.step1_text);
-        TextView step2 = dialogView.findViewById(R.id.step2_text);
-        TextView step3 = dialogView.findViewById(R.id.step3_text);
-        TextView step4 = dialogView.findViewById(R.id.step4_text);
-        Button btnGotIt = dialogView.findViewById(R.id.btnGotIt);
 
-        step1.setText("۱. روی یکی از گوشی‌ها (میزبان) «شروع سرور» را بزنید.\n⚠️ حتماً هات‌اسپات یا وای‌فای مشترک روشن باشد.");
-        step2.setText("۲. گوشی دیگر (مهمان) به همان شبکه وصل شود.\n📡 نیازی به اینترنت نیست، فقط اتصال محلی.");
-        step3.setText("۳. آدرس (مثلاً http://192.168.x.x:8080) یا QR کد را اسکن کند.\n🌐 آدرس در بالای صفحه نمایش داده می‌شود.");
-        step4.setText("۴. مهمان در مرورگر خود فایل را آپلود می‌کند.\n📁 فایل‌ها در حافظه میزبان ذخیره می‌شوند.\n🔐 اگر حذف با رمز فعال باشد، مهمان فقط می‌تواند دانلود کند.");
-
-        btnGotIt.setOnClickListener(v -> dialog.dismiss());
-        dialog.show();
-    }
 
     private void checkPermissions() {
         String[] permissions = {
@@ -295,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
             webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword);
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             updateServerUi(true);
-            Toast.makeText(this, "سرور شروع شد: " + url, Toast.LENGTH_LONG).show();
+            Toast.makeText(this, "سرور شروع شد: " + "\n"+url, Toast.LENGTH_LONG).show();
 
             mainHandler.postDelayed(() -> {
                 if (webServer != null && currentIp != null) {

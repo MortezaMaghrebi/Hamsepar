@@ -67,16 +67,15 @@
                     android:layout_height="wrap_content"
                     android:text="📖 چگونه کار می‌کند؟"
                     android:textColor="#0284C7"
-                    android:textSize="14sp"
+                    android:textSize="15dp"
                     android:textStyle="bold"
                     android:layout_marginBottom="10dp" />
 
                 <TextView
                     android:layout_width="match_parent"
                     android:layout_height="wrap_content"
-                    android:text="① روی دکمه «شروع سرور» بزنید\n② گوشی دیگر به هات‌اسپات یا وای‌فای همین گوشی متصل شود\n③ آدرس یا QR کد را اسکن کند\n④ در مرورگر فایل آپلود کند ← فایل‌ها همینجا ذخیره می‌شوند"
-                    android:textColor="#475569"
-                    android:textSize="12sp"
+                    android:text="1- هات اسپات گوشی را روشن کن\n2- گوشی دوم یا کامپیوتر را به همین هات اسپات وصل کن\n3- روی دکمه «شروع سرور» بزن\n4- در گوشی دوم یا کامپیوتر، آدرس یا QR کد را در مرورگر باز کن\n5- در یک گوشی فایل آپلود شود ← در گوشی دیگر دانلود شود (یا برعکس)\n6- راه جایگزین: هر دو گوشی به یک وای‌فای مشترک متصل شوند\n7- میتونی چند تا گوشی و کامپیوتر رو به وای فای وصل کنی و فایل رو همزمان با همه شون به اشتراک بذاری"
+                    android:textSize="13dp"
                     android:lineSpacingExtra="6dp" />
             </LinearLayout>
         </androidx.cardview.widget.CardView>
