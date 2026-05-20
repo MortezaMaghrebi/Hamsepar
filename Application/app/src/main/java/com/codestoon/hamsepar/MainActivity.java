@@ -268,7 +268,7 @@ public class MainActivity extends AppCompatActivity {
             webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword);
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             updateServerUi(true);
-            Toast.makeText(this, "سرور شروع شد: " + "\n"+url, Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, "سرور شروع شد: " + "\n"+url, Toast.LENGTH_LONG).show();
 
             mainHandler.postDelayed(() -> {
                 if (webServer != null && currentIp != null) {

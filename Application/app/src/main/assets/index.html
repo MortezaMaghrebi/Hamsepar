@@ -33,9 +33,14 @@
         .progress-fill { width: 0%; height: 100%; background: #10b981; transition: width 0.2s; }
         .stats { background: #f1f5f9; padding: 12px; border-radius: 18px; margin-top: 20px; text-align: center; font-size: 0.9rem; }
         .guide { background: #fef9c3; border-right: 5px solid #eab308; padding: 15px; border-radius: 16px; margin-top: 20px; }
+        .qr-container { text-align: center; margin-top: 15px; padding: 15px; background: white; border-radius: 16px; }
+        .qr-container p { margin-bottom: 10px; color: #4a5568; font-weight: bold; }
+        #qrcode { display: flex; justify-content: center; align-items: center; }
+        #qrcode img { margin: 0 auto; border-radius: 10px; }
         .footer { text-align: center; margin-top: 30px; color: white; font-size: 0.8rem; }
         @media (max-width: 700px) { .grid { grid-template-columns: 1fr; } }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/qrcodejs@1.0.0/qrcode.min.js"></script>
 </head>
 <body>
 <div class="container">
@@ -73,13 +78,27 @@
             <h2>ℹ️ راهنما</h2>
             <div class="guide">
                 <p>✅ <strong>نحوه اتصال:</strong></p>
-                <p>۱- میزبان دکمه «شروع سرور» را بزند (هات‌اسپات یا وای‌فای مشترک روشن باشد).</p>
-                <p>۲- دستگاه دیگر به همان شبکه متصل شود (بدون نیاز به اینترنت).</p>
-                <p>۳- آدرس زیر یا QR کد را در مرورگر باز کند.</p>
-                <p>🔗 <strong>آدرس سرور:</strong> <span id="serverUrl" style="color:#2563eb; word-break:break-all;"></span></p>
+                <p>1- هات اسپات گوشی را روشن کن</p>
+                <p>2- گوشی دوم یا کامپیوتر را به همین هات اسپات وصل کن</p>
+                <p>3- روی دکمه «شروع سرور» بزن</p>
+                <p>4- در گوشی دوم یا کامپیوتر، آدرس یا QR کد را در مرورگر باز کن</p>
+                <p>5- در یک گوشی فایل آپلود شود ← در گوشی دیگر دانلود شود (یا برعکس)</p>
+                <p>6- راه جایگزین: هر دو گوشی به یک وای‌فای مشترک متصل شوند</p>
+                <p>7- می‌تونی چند تا گوشی و کامپیوتر رو به وای فای وصل کنی و فایل رو همزمان با همه شون به اشتراک بذاری</p>
+
+                <p style="margin-top:12px;">🔗 <strong>آدرس سرور:</strong> <span id="serverUrl" style="color:#2563eb; word-break:break-all;"></span></p>
                 <button id="copyUrlBtn" style="margin-top:8px; background:#3b82f6; border:none; padding:6px 12px; border-radius:30px; color:white;">📋 کپی لینک</button>
-                <p>📱 <a href="#" id="openLocalBrowser" style="color:#2563eb;">باز کردن در همین گوشی</a></p>
-                <p>⚠️ اگر آدرس کار نکرد، آی‌پی را از تنظیمات وای‌فای گوشی میزبان پیدا کنید (مثلاً 192.168.43.1:8080).</p>
+                <p style="margin-top:12px;">📱 <a href="#" id="openLocalBrowser" style="color:#2563eb;">باز کردن در همین گوشی</a></p>
+            </div>
+
+            <div class="qr-container">
+                <p>📱 اسکن QR کد برای اتصال سریع:</p>
+                <div id="qrcode"></div>
+            </div>
+
+            <div class="guide" style="margin-top:10px; background:#e0f2fe; border-right-color:#0284c7;">
+                <p>⚠️ <strong>نکته مهم:</strong> اگر آدرس کار نکرد، آی‌پی را از تنظیمات وای‌فای گوشی میزبان پیدا کنید (مثلاً 192.168.43.1:8080).</p>
+                <p>💡 دستگاه گیرنده باید در همان شبکه (وای‌فای یا هات‌اسپات) باشد، نیازی به اینترنت نیست.</p>
             </div>
         </div>
     </div>
@@ -92,33 +111,26 @@
 
     // ========== نام یکتا و سیستم عامل ==========
     function getOrCreateUniqueName() {
-    let uniqueName = localStorage.getItem('uniqueUserName');
-    if (!uniqueName) {
-        // لیست ۵۰ نام یکتا فارسی (غیرانسانی)
-        const persianNames = [
-            "آذرگون", "بارانک", "پونه‌سا", "تیسفون", "جادوک", "چکاد", "خاوران", "دماوند",
-            "دیباچه", "راشا", "زاینده", "ژرفا", "سایه‌سان", "شبنما", "صباورد", "طلسمک",
-            "ظلمت‌زدا", "عطرا", "غزل‌سرا", "فرفره", "ققنوس", "کاروان‌سالار", "گندومک",
-            "لاله‌دشت", "مهتابک", "نارنجک", "وروجک", "هامون", "یخبندان", "ابریشمک", "پرنیان",
-            "تارا", "جیرجیرک", "چلیپا", "خزه‌زار", "درفش", "دیرین", "زبرجد", "ژاله‌پوش",
-            "سحرخیز", "شبچره", "شنگرف", "صرصر", "عقیق", "غراب", "فولادزره", "کج‌کلاه",
-            "گرزدار", "لرزانک", "مینو"
-        ];
-
-        // لیست ایموجی‌ها
-        const emojis = ["😀", "😎", "🦁", "🐘", "🦊", "🐼", "🐧", "🦜", "⭐", "🌙",
-                        "🔥", "💎", "🎈", "🍕", "⚽", "🎵", "📚", "🚀", "🌈", "🍎"];
-
-        // انتخاب تصادفی یک نام فارسی و یک ایموجی
-        const randomName = persianNames[Math.floor(Math.random() * persianNames.length)];
-        const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
-
-        // ترکیب نهایی: فقط یک کلمه + یک ایموجی (بدون فاصله اضافی)
-        uniqueName = `${randomName} ${randomEmoji}`;
-        localStorage.setItem('uniqueUserName', uniqueName);
+        let uniqueName = localStorage.getItem('uniqueUserName');
+        if (!uniqueName) {
+            const persianNames = [
+                "آذرگون", "بارانک", "پونه‌سا", "تیسفون", "جادوک", "چکاد", "خاوران", "دماوند",
+                "دیباچه", "راشا", "زاینده", "ژرفا", "سایه‌سان", "شبنما", "صباورد", "طلسمک",
+                "ظلمت‌زدا", "عطرا", "غزل‌سرا", "فرفره", "ققنوس", "کاروان‌سالار", "گندومک",
+                "لاله‌دشت", "مهتابک", "نارنجک", "وروجک", "هامون", "یخبندان", "ابریشمک", "پرنیان",
+                "تارا", "جیرجیرک", "چلیپا", "خزه‌زار", "درفش", "دیرین", "زبرجد", "ژاله‌پوش",
+                "سحرخیز", "شبچره", "شنگرف", "صرصر", "عقیق", "غراب", "فولادزره", "کج‌کلاه",
+                "گرزدار", "لرزانک", "مینو"
+            ];
+            const emojis = ["😀", "😎", "🦁", "🐘", "🦊", "🐼", "🐧", "🦜", "⭐", "🌙",
+                            "🔥", "💎", "🎈", "🍕", "⚽", "🎵", "📚", "🚀", "🌈", "🍎"];
+            const randomName = persianNames[Math.floor(Math.random() * persianNames.length)];
+            const randomEmoji = emojis[Math.floor(Math.random() * emojis.length)];
+            uniqueName = `${randomName} ${randomEmoji}`;
+            localStorage.setItem('uniqueUserName', uniqueName);
+        }
+        return uniqueName;
     }
-    return uniqueName;
-}
 
     function detectOS() {
         const userAgent = navigator.userAgent;
@@ -133,7 +145,6 @@
     const MY_UNIQUE_NAME = getOrCreateUniqueName();
     const MY_OS = detectOS();
 
-    // نمایش اطلاعات کاربر در هدر
     document.getElementById('myInfo').innerHTML = `👤 ${MY_UNIQUE_NAME} | 💻 ${MY_OS}`;
 
     // ========== تابع بارگذاری اطلاعات از سرور ==========
@@ -197,8 +208,7 @@
     async function deleteFilePrompt(fileName) {
         let password = '';
         if (deleteProtection) {
-            //password = prompt('برای حذف فایل، رمز عبور را وارد کنید:');
-            //if (password === null) return;
+            // رمز در صورت نیاز فعال شود
         }
         const body = 'fileName=' + encodeURIComponent(fileName) + (password ? '&password=' + encodeURIComponent(password) : '');
         const res = await fetch('/delete', {
@@ -213,8 +223,7 @@
     document.getElementById('deleteAllBtn').addEventListener('click', async () => {
         let password = '';
         if (deleteProtection) {
-            //password = prompt('برای حذف همه فایل‌ها، رمز عبور را وارد کنید:');
-            //if (password === null) return;
+            // رمز در صورت نیاز فعال شود
         }
         const body = password ? 'password=' + encodeURIComponent(password) : '';
         const res = await fetch('/delete-all', {
@@ -274,16 +283,42 @@
         uploadFiles(e.dataTransfer.files);
     });
 
-    // ========== راهنما ==========
-    document.getElementById('serverUrl').innerText = window.location.href;
+    // ========== راهنما و QR ==========
+    const serverUrlSpan = document.getElementById('serverUrl');
+    const currentUrl = window.location.href;
+    serverUrlSpan.innerText = currentUrl;
+
     document.getElementById('copyUrlBtn').addEventListener('click', () => {
-        navigator.clipboard.writeText(window.location.href);
-        alert('لینک کپی شد');
+        navigator.clipboard.writeText(currentUrl);
+        alert('✅ لینک کپی شد');
     });
+
     document.getElementById('openLocalBrowser').addEventListener('click', (e) => {
         e.preventDefault();
-        window.location.href = window.location.href;
+        window.location.href = currentUrl;
     });
+
+    // ساخت QR کد
+    function generateQRCode() {
+        const qrcodeDiv = document.getElementById('qrcode');
+        qrcodeDiv.innerHTML = ''; // پاک کردن محتوای قبلی
+        try {
+            new QRCode(qrcodeDiv, {
+                text: currentUrl,
+                width: 180,
+                height: 180,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+            });
+        } catch (error) {
+            console.error('خطا در ساخت QR:', error);
+            qrcodeDiv.innerHTML = '<p style="color:red;">خطا در تولید QR کد</p>';
+        }
+    }
+
+    // تاخیر در ساخت QR برای اطمینان از لود کتابخانه
+    setTimeout(generateQRCode, 100);
 
     // ========== شروع ==========
     loadData();
