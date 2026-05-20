@@ -224,10 +224,11 @@ public class MainActivity extends AppCompatActivity {
     }
 
     void initFooterButtons() {
-        View showVideosBtn = findViewById(R.id.continueWatchingButton);
-        if (showVideosBtn != null) {
-            showVideosBtn.setOnClickListener(v -> {
+        View browserButton = findViewById(R.id.browserButton);
+        if (browserButton != null) {
+            browserButton.setOnClickListener(v -> {
                 animateButton(v);
+                openBrowser();
             });
         }
 
@@ -317,6 +318,21 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
+    private void openBrowser() {
+        if (webServer != null && currentIp != null) {
+            String url = "http://" + currentIp + ":" + PORT;
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+        } else if (currentIp != null) {
+            // سرور خاموش است ولی آی‌پی وجود دارد
+            String url = "http://" + currentIp + ":" + PORT;
+            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
+            startActivity(intent);
+            Toast.makeText(this, "سرور خاموش است. برای اتصال، ابتدا سرور را روشن کنید.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "ابتدا سرور را روشن کنید.", Toast.LENGTH_SHORT).show();
+        }
+    }
     private void checkPermissions() {
         String[] permissions = {
                 Manifest.permission.INTERNET,
@@ -651,11 +667,36 @@ public class MainActivity extends AppCompatActivity {
             if ("/".equals(uri) || "/index.html".equals(uri)) {
                 String html = loadAsset("index.html");
                 if (html != null) {
+                    String packageName = getPackageName();
+                    String storeName = BuildConfig.STORE_NAME;
+
+                    String storeLink;
+                    String storeDisplayName;
+                    String storeColor;
+
+                    if ("myket".equals(storeName)) {
+                        storeLink = "https://myket.ir/app/" + packageName;
+                        storeDisplayName = "مایکت";
+                        storeColor = "#3b82f6";
+                    } else {
+                        // پیش‌فرض بازار
+                        storeLink = "https://cafebazaar.ir/app/" + packageName;
+                        storeDisplayName = "بازار";
+                        storeColor = "#10b981";
+                    }
+
+                    // جایگزینی مقادیر در HTML (آیکون دانلود برای هر دو)
+                    html = html.replace("{{STORE_LINK}}", storeLink);
+                    html = html.replace("{{STORE_NAME}}", storeDisplayName);
+                    html = html.replace("{{STORE_COLOR}}", storeColor);
+
                     return newFixedLengthResponse(Response.Status.OK, "text/html; charset=utf-8", html);
                 } else {
                     return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "خطا در بارگذاری صفحه");
                 }
             }
+
+
 
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
         }

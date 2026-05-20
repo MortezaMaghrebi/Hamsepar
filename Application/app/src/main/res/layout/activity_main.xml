@@ -333,35 +333,6 @@
         android:padding="12dp"
         android:paddingBottom="16dp">
 
-        <LinearLayout
-            android:id="@+id/bannerAdLayout"
-            android:layout_width="match_parent"
-            android:layout_height="wrap_content"
-            android:background="?attr/selectableItemBackground"
-            android:clickable="true"
-            android:elevation="4dp"
-            android:focusable="true"
-            android:gravity="center"
-            android:orientation="vertical">
-            <!-- بنر تبلیغات (فقط برای کاربران رایگان) -->
-            <LinearLayout
-                android:id="@+id/bannerAdContainer"
-                android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:layout_marginBottom="4dp"
-                android:gravity="center"
-                android:orientation="vertical"
-                android:visibility="gone">
-
-                <com.adivery.sdk.AdiveryBannerAdView
-                    android:id="@+id/banner_ad"
-                    android:layout_width="wrap_content"
-                    android:layout_height="wrap_content"
-                    android:layout_gravity="center"
-                    app:banner_size="banner" />
-            </LinearLayout>
-        </LinearLayout>
-
         <!-- دکمه‌های پایین (طراحی جدید) -->
         <!-- دکمه‌های پایین (طراحی جدید با دکمه سایر اپ‌ها) -->
         <LinearLayout
@@ -375,7 +346,7 @@
             android:paddingBottom="16dp">
 
             <LinearLayout
-                android:id="@+id/continueWatchingButton"
+                android:id="@+id/browserButton"
                 android:layout_width="0dp"
                 android:layout_height="match_parent"
                 android:layout_weight="1"
@@ -388,13 +359,13 @@
                 <FrameLayout
                     android:layout_width="48dp"
                     android:layout_height="48dp"
-                    android:background="@drawable/circle_button_bg_search">
+                    android:background="@drawable/circle_button_bg_browser">
 
                     <ImageView
                         android:layout_width="24dp"
                         android:layout_height="24dp"
                         android:layout_gravity="center"
-                        android:src="@drawable/ic_continue_watching"
+                        android:src="@drawable/ic_browser"
                         app:tint="#FFFFFF" />
 
                 </FrameLayout>
@@ -404,8 +375,8 @@
                     android:layout_height="wrap_content"
                     android:layout_marginTop="6dp"
                     android:fontFamily="@font/yekan"
-                    android:text="ادامه تماشا"
-                    android:textColor="#3498db"
+                    android:text="مرورگر"
+                    android:textColor="#8B5CF6"
                     android:textSize="11sp" />
 
             </LinearLayout>

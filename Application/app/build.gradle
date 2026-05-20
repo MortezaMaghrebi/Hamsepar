@@ -91,8 +91,8 @@ dependencies {
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
     //adivery
-    implementation 'com.adivery:sdk:4.8.3'
-    implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.5.10'
+    //implementation 'com.adivery:sdk:4.8.3'
+    //implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.5.10'
 
 
 }
