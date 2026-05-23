@@ -236,6 +236,14 @@ public class ServerDashboardActivity extends AppCompatActivity {
             refreshData();
             swipeRefresh.setRefreshing(false);
         });
+
+        txtLocalIp.setOnClickListener(v -> {
+            String ip = txtLocalIp.getText().toString();
+            ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+            ClipData clip = ClipData.newPlainText("IP Address", ip);
+            clipboard.setPrimaryClip(clip);
+            Toast.makeText(this, "آی‌پی کپی شد", Toast.LENGTH_SHORT).show();
+        });
     }
 
     private void setupFilePicker() {
@@ -838,7 +846,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
     private String formatSize(long bytes) {
         if (bytes <= 0) return "0 B";
-        final String[] units = new String[]{"B", "KB", "MB", "GB"};
+        final String[] units = new String[]{"بایت", "کیلوبایت", "مگابایت", "گیگابایت"};
         int digitGroups = (int) (Math.log10(bytes) / Math.log10(1024));
         return String.format(Locale.getDefault(), "%.1f %s", bytes / Math.pow(1024, digitGroups), units[digitGroups]);
     }
