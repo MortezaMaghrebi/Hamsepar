@@ -15,6 +15,8 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.format.Formatter;
+import android.view.Gravity;
+import android.view.LayoutInflater;
 import android.view.View;
 import android.webkit.MimeTypeMap;
 import android.widget.Button;
@@ -44,6 +46,7 @@ import com.google.zxing.qrcode.QRCodeWriter;
 import org.json.JSONArray;
 import org.json.JSONObject;
 
+import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -75,7 +78,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
     private ProgressBar progressBar;
     private ImageView imgQrCode;
     private Button btnCopyUrl, btnDeleteAll;
-    private RecyclerView recyclerFiles, recyclerClients;
+    private RecyclerView  recyclerClients;
+    private LinearLayout layoutFilesContainer;
 
     // Adapters
     private FileListAdapter fileAdapter;
@@ -139,10 +143,9 @@ public class ServerDashboardActivity extends AppCompatActivity {
         imgQrCode = findViewById(R.id.imgQrCode);
         btnCopyUrl = findViewById(R.id.btnCopyUrl);
         btnDeleteAll = findViewById(R.id.btnDeleteAll);
-        recyclerFiles = findViewById(R.id.recyclerFiles);
+        layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
         recyclerClients = findViewById(R.id.recyclerClients);
 
-        recyclerFiles.setLayoutManager(new LinearLayoutManager(this));
         recyclerClients.setLayoutManager(new LinearLayoutManager(this));
     }
 
@@ -208,7 +211,6 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 deletesFile(fileName);
             }
         });
-        recyclerFiles.setAdapter(fileAdapter);
 
         clientAdapter = new ClientListAdapter();
         recyclerClients.setAdapter(clientAdapter);
@@ -308,7 +310,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
             long totalSize = obj.getLong("totalSize");
 
             runOnUiThread(() -> {
-                fileAdapter.setFiles(new ArrayList<>(fileList));
+                displayFiles(fileList);  // متد جدید
                 clientAdapter.setClients(new ArrayList<>(clientList));
                 txtClientsCount.setText(String.valueOf(clientList.size()));
                 txtStats.setText(String.format(Locale.getDefault(), "📊 %d فایل | حجم کل: %s",
@@ -322,12 +324,11 @@ public class ServerDashboardActivity extends AppCompatActivity {
     String fileName;
     private void uploadFile(Uri uri) {
         if (!isPremium) {
-            // Check file size first
             try (InputStream is = getContentResolver().openInputStream(uri)) {
                 long size = is.available();
                 if (size > 500 * 1024 * 1024) {
                     runOnUiThread(() -> {
-                        Toast.makeText(this, "حجم فایل بیش از 500 مگابایت است. برای آپلود فایل‌های بزرگتر، نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
+                        Toast.makeText(this, "حجم فایل بیش از 500 مگابایت است. نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
                     });
                     return;
                 }
@@ -336,43 +337,88 @@ public class ServerDashboardActivity extends AppCompatActivity {
             }
         }
 
-        fileName = getFileNameFromUri(uri);
+        String fileName = getFileNameFromUri(uri);
         if (fileName == null) fileName = "file_" + System.currentTimeMillis();
+        final String finalFileName = fileName;
 
         runOnUiThread(() -> {
             progressBar.setVisibility(View.VISIBLE);
+            progressBar.setProgress(0);
             txtUploadProgress.setVisibility(View.VISIBLE);
+            txtUploadProgress.setText("در حال آپلود: 0%");
         });
 
         new Thread(() -> {
+            HttpURLConnection connection = null;
             try {
-                InputStream is = getContentResolver().openInputStream(uri);
-                byte[] fileBytes = readBytes(is);
-                is.close();
+                String boundary = "*****" + System.currentTimeMillis() + "*****";
+                String lineEnd = "\r\n";
+                String twoHyphens = "--";
 
-                RequestBody requestBody = new MultipartBody.Builder()
-                        .setType(MultipartBody.FORM)
-                        .addFormDataPart("file", fileName,
-                                RequestBody.create(MediaType.parse("application/octet-stream"), fileBytes))
-                        .build();
+                URL url = new URL("http://" + currentIp + ":8080/upload");
+                connection = (HttpURLConnection) url.openConnection();
+                connection.setDoInput(true);
+                connection.setDoOutput(true);
+                connection.setUseCaches(false);
+                connection.setRequestMethod("POST");
+                connection.setRequestProperty("Connection", "Keep-Alive");
+                connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+                connection.setConnectTimeout(30000);
+                connection.setReadTimeout(120000);
 
-                Request request = new Request.Builder()
-                        .url("http://" + currentIp + ":8080/upload")
-                        .post(requestBody)
-                        .build();
+                // دریافت اندازه فایل برای نمایش پیشرفت
+                long fileSize;
+                try (InputStream sizeIs = getContentResolver().openInputStream(uri)) {
+                    fileSize = sizeIs.available();
+                }
 
-                Response response = okHttpClient.newCall(request).execute();
+                DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
 
+                // نوشتن هدر
+                outputStream.writeBytes(twoHyphens + boundary + lineEnd);
+                outputStream.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + finalFileName + "\"" + lineEnd);
+                outputStream.writeBytes("Content-Type: application/octet-stream" + lineEnd);
+                outputStream.writeBytes(lineEnd);
+
+                // آپلود با بافر - بدون بارگذاری کل فایل در حافظه
+                InputStream fileInputStream = getContentResolver().openInputStream(uri);
+                byte[] buffer = new byte[8192];  // بافر 8KB
+                int bytesRead;
+                long totalRead = 0;
+                int lastProgress = -1;
+
+                while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                    outputStream.write(buffer, 0, bytesRead);
+                    totalRead += bytesRead;
+
+                    // به‌روزرسانی پیشرفت (هر 1% یکبار برای کاهش بار UI)
+                    final int progress = (int) ((totalRead * 100) / fileSize);
+                    if (progress != lastProgress) {
+                        lastProgress = progress;
+                        runOnUiThread(() -> {
+                            progressBar.setProgress(progress);
+                            txtUploadProgress.setText("در حال آپلود: " + progress + "%");
+                        });
+                    }
+                }
+
+                fileInputStream.close();
+                outputStream.writeBytes(lineEnd);
+                outputStream.writeBytes(twoHyphens + boundary + twoHyphens + lineEnd);
+                outputStream.flush();
+                outputStream.close();
+
+                int responseCode = connection.getResponseCode();
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     txtUploadProgress.setVisibility(View.GONE);
-                    if (response.isSuccessful()) {
+                    if (responseCode == HttpURLConnection.HTTP_OK) {
                         Toast.makeText(this, "فایل با موفقیت آپلود شد", Toast.LENGTH_SHORT).show();
                         refreshData();
-                    } else if (response.code() == 403) {
+                    } else if (responseCode == 403) {
                         Toast.makeText(this, "حجم فایل بیش از حد مجاز است. نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
                     } else {
-                        Toast.makeText(this, "خطا در آپلود فایل", Toast.LENGTH_SHORT).show();
+                        Toast.makeText(this, "خطا در آپلود فایل (کد: " + responseCode + ")", Toast.LENGTH_SHORT).show();
                     }
                 });
 
@@ -383,6 +429,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
                     txtUploadProgress.setVisibility(View.GONE);
                     Toast.makeText(this, "خطا در آپلود: " + e.getMessage(), Toast.LENGTH_SHORT).show();
                 });
+            } finally {
+                if (connection != null) connection.disconnect();
             }
         }).start();
     }
@@ -445,6 +493,58 @@ public class ServerDashboardActivity extends AppCompatActivity {
         builder.setNegativeButton("انصراف", null);
         builder.show();
     }
+
+    private void displayFiles(List<FileItem> files) {
+        runOnUiThread(() -> {
+            layoutFilesContainer.removeAllViews();
+
+            if (files == null || files.isEmpty()) {
+                TextView emptyView = new TextView(this);
+                emptyView.setText("📂 هیچ فایلی وجود ندارد");
+                emptyView.setTextColor(ContextCompat.getColor(this, R.color.gray_500));
+                emptyView.setGravity(Gravity.CENTER);
+                emptyView.setPadding(32, 32, 32, 32);
+                emptyView.setTextSize(14);
+                layoutFilesContainer.addView(emptyView);
+                return;
+            }
+
+            for (FileItem file : files) {
+                View itemView = LayoutInflater.from(this).inflate(R.layout.item_file, layoutFilesContainer, false);
+
+                TextView txtIcon = itemView.findViewById(R.id.txtFileIcon);
+                TextView txtName = itemView.findViewById(R.id.txtFileName);
+                TextView txtSize = itemView.findViewById(R.id.txtFileSize);
+                Button btnDownload = itemView.findViewById(R.id.btnDownload);
+                Button btnDelete = itemView.findViewById(R.id.btnDelete);
+
+                txtIcon.setText(getFileIcon(file.getName()));
+                txtName.setText(file.getName());
+                txtSize.setText(formatSize(file.getSize()));
+
+                btnDownload.setOnClickListener(v -> downloadFile(file.getName()));
+                btnDelete.setOnClickListener(v -> deleteFile(file.getName()));
+
+                layoutFilesContainer.addView(itemView);
+            }
+        });
+    }
+
+    // متد کمکی برای آیکون فایل:
+    private String getFileIcon(String fileName) {
+        String ext = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase(Locale.ROOT);
+        switch (ext) {
+            case "jpg": case "jpeg": case "png": case "gif": return "🖼️";
+            case "mp4": case "mkv": case "avi": return "🎬";
+            case "mp3": case "wav": case "flac": return "🎵";
+            case "pdf": return "📕";
+            case "doc": case "docx": return "📄";
+            case "apk": return "📦";
+            default: return "📁";
+        }
+    }
+
+
 
     private void showPasswordDialog(String fileName) {
         android.widget.EditText input = new android.widget.EditText(this);

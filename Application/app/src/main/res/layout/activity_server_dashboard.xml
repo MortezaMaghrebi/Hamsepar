@@ -270,12 +270,13 @@
                         android:textSize="16sp"
                         android:textStyle="bold" />
 
-                    <androidx.recyclerview.widget.RecyclerView
-                        android:id="@+id/recyclerFiles"
+                    <!-- به جای RecyclerView از LinearLayout استفاده می‌شود -->
+                    <LinearLayout
+                        android:id="@+id/layoutFilesContainer"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
-                        android:nestedScrollingEnabled="false" />
+                        android:orientation="vertical" />
 
                     <Button
                         android:id="@+id/btnDeleteAll"
