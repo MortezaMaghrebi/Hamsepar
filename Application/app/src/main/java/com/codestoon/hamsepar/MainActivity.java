@@ -14,6 +14,7 @@ import android.os.Looper;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
@@ -21,10 +22,13 @@ import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
 import com.google.zxing.BarcodeFormat;
@@ -395,15 +399,167 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    AlertDialog ip_dialog;
     private void chooseIpFromList(List<String> ips) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("انتخاب آی‌پی مورد نظر");
-        builder.setItems(ips.toArray(new String[0]), (dialog, which) -> {
-            currentIp = ips.get(which);
+        // بررسی نوع شبکه برای هر IP
+        List<IpInfo> ipInfoList = new ArrayList<>();
+        for (String ip : ips) {
+            ipInfoList.add(new IpInfo(ip, detectIpType(ip), getIpIcon(ip)));
+        }
+
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_ip_selector, null);
+        RecyclerView recyclerIps = dialogView.findViewById(R.id.recyclerIps);
+        recyclerIps.setLayoutManager(new LinearLayoutManager(this));
+
+        IpSelectorAdapter adapter = new IpSelectorAdapter(ipInfoList, ipInfo -> {
+            currentIp = ipInfo.ip;
+            ip_dialog.dismiss();
             startServerWithIp(currentIp);
         });
-        builder.setNegativeButton("راهنما", (d, w) -> showManualIpHelp());
-        builder.show();
+        recyclerIps.setAdapter(adapter);
+
+        ip_dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setNegativeButton("راهنما", (d, w) -> showManualIpHelp())
+                .setPositiveButton("اتصال خودکار", (d, w) -> {
+                    // انتخاب بهترین IP
+                    String selectedIp = null;
+                    for (IpInfo info : ipInfoList) {
+                        if (info.type.contains("هات‌اسپات") || info.type.contains("وای‌فای")) {
+                            selectedIp = info.ip;
+                            break;
+                        }
+                    }
+                    if (selectedIp == null && !ipInfoList.isEmpty()) {
+                        selectedIp = ipInfoList.get(0).ip;
+                    }
+                    if (selectedIp != null) {
+                        currentIp = selectedIp;
+                        startServerWithIp(currentIp);
+                    }
+
+                })
+                .create();
+        ip_dialog.show();
+    }
+
+    private String getIpIcon(String ip) {
+        if (ip.startsWith("192.168.") || ip.startsWith("10.")) {
+            return "📶";
+        } else if (ip.startsWith("172.")) {
+            return "🌐";
+        } else if (ip.startsWith("169.254.")) {
+            return "⚠️";
+        }
+        return "📡";
+    }
+
+
+    private String detectIpType(String ip) {
+        try {
+            // بررسی از طریق NetworkInterface
+            Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
+            while (interfaces.hasMoreElements()) {
+                NetworkInterface iface = interfaces.nextElement();
+                Enumeration<InetAddress> addresses = iface.getInetAddresses();
+                while (addresses.hasMoreElements()) {
+                    InetAddress addr = addresses.nextElement();
+                    if (addr.getHostAddress().equals(ip)) {
+                        String ifaceName = iface.getDisplayName().toLowerCase();
+
+                        // تشخیص نوع شبکه
+                        if (ifaceName.contains("wlan") || ifaceName.contains("wifi")) {
+                            return "📶 وای‌فای (WiFi) - مناسب برای اشتراک‌گذاری";
+                        } else if (ifaceName.contains("p2p") || ifaceName.contains("softap")) {
+                            return "🔥 هات‌اسپات (Hotspot) - مناسب برای اشتراک‌گذاری";
+                        } else if (ifaceName.contains("rmnet") || ifaceName.contains("mobile") || ifaceName.contains("cell")) {
+                            return "📱 شبکه همراه (Mobile) - ممکن است کار نکند";
+                        } else if (ifaceName.contains("eth") || ifaceName.contains("ethernet")) {
+                            return "🔌 اترنت (Ethernet) - مناسب برای اشتراک‌گذاری";
+                        } else if (ifaceName.contains("usb")) {
+                            return "🔗 اتصال USB - مناسب است";
+                        } else if (ifaceName.contains("bluetooth")) {
+                            return "🎧 بلوتوث (Bluetooth) - سرعت پایین";
+                        } else if (ifaceName.contains("loopback") || ip.equals("127.0.0.1")) {
+                            return "🔄 محلی (Local) - فقط برای خود دستگاه";
+                        } else {
+                            return "❓ نوع ناشناس - امتحان کنید";
+                        }
+                    }
+                }
+            }
+        } catch (SocketException e) {
+            e.printStackTrace();
+        }
+
+        // Fallback با بررسی IP
+        if (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")) {
+            return "🌐 شبکه محلی (LAN) - مناسب برای اشتراک‌گذاری";
+        } else if (ip.startsWith("169.254.")) {
+            return "⚠️ IP خودکار (APIPA) - ممکن است کار نکند";
+        } else {
+            return "❓ آی‌پی ناشناس - امتحان کنید";
+        }
+    }
+
+    // کلاس کمکی برای اطلاعات IP
+    private static class IpInfo {
+        String ip;
+        String type;
+        String icon;
+        IpInfo(String ip, String type, String icon) {
+            this.ip = ip;
+            this.type = type;
+            this.icon = icon;
+        }
+    }
+
+    private interface OnIpSelectedListener {
+        void onSelected(IpInfo ipInfo);
+    }
+
+    // آداپتور برای RecyclerView
+    private class IpSelectorAdapter extends RecyclerView.Adapter<IpSelectorAdapter.ViewHolder> {
+        private List<IpInfo> ipList;
+        private OnIpSelectedListener listener;
+
+        IpSelectorAdapter(List<IpInfo> ipList, OnIpSelectedListener listener) {
+            this.ipList = ipList;
+            this.listener = listener;
+        }
+
+        @NonNull
+        @Override
+        public ViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+            View view = LayoutInflater.from(parent.getContext()).inflate(R.layout.item_ip_selector, parent, false);
+            return new ViewHolder(view);
+        }
+
+        @Override
+        public void onBindViewHolder(@NonNull ViewHolder holder, int position) {
+            IpInfo info = ipList.get(position);
+            holder.txtIcon.setText(info.icon);
+            holder.txtIpAddress.setText(info.ip);
+            holder.txtIpType.setText(info.type);
+            holder.itemView.setOnClickListener(v -> {
+                if (listener != null) listener.onSelected(info);
+            });
+        }
+
+        @Override
+        public int getItemCount() {
+            return ipList.size();
+        }
+
+        class ViewHolder extends RecyclerView.ViewHolder {
+            TextView txtIcon, txtIpAddress, txtIpType;
+            ViewHolder(@NonNull View itemView) {
+                super(itemView);
+                txtIcon = itemView.findViewById(R.id.txtIpIcon);
+                txtIpAddress = itemView.findViewById(R.id.txtIpAddress);
+                txtIpType = itemView.findViewById(R.id.txtIpType);
+            }
+        }
     }
 
     private void showManualIpHelp() {
@@ -442,7 +598,6 @@ public class MainActivity extends AppCompatActivity {
             //    }
             //}, 500);
             openBrowser();
-
             mainHandler.postDelayed(clientUpdater, 2000);
         } catch (IOException e) {
             e.printStackTrace();

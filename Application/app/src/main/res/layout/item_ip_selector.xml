@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:orientation="horizontal"
+    android:padding="16dp"
+    android:background="?attr/selectableItemBackground"
+    android:clickable="true"
+    android:layoutDirection="rtl"
+    android:focusable="true">
+
+    <TextView
+        android:id="@+id/txtIpIcon"
+        android:layout_width="40dp"
+        android:layout_height="40dp"
+        android:text="📶"
+        android:textSize="24sp"
+        android:gravity="center" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="12dp">
+
+        <TextView
+            android:id="@+id/txtIpAddress"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="192.168.1.1"
+            android:textColor="#1F2937"
+            android:textSize="15sp"
+            android:textStyle="bold"
+            android:fontFamily="monospace" />
+
+        <TextView
+            android:id="@+id/txtIpType"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="وای‌فای"
+            android:textColor="#6B7280"
+            android:textSize="12sp"
+            android:layout_marginTop="4dp" />
+    </LinearLayout>
+
+    <ImageView
+        android:layout_width="24dp"
+        android:layout_height="24dp"
+        android:src="@drawable/ic_arrow_left"
+        android:tint="#9CA3AF" />
+
+</LinearLayout>
