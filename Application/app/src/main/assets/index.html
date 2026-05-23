@@ -1012,20 +1012,33 @@
 
             document.getElementById('stats').innerHTML = `📊 <strong>${data.totalFiles || 0}</strong> فایل | حجم کل: <strong>${formatSize(data.totalSize || 0)}</strong>`;
 
+            // ========== تغییر اصلی اینجاست ==========
             const clientListDiv = document.getElementById('clientList');
             if (!data.clients || data.clients.length === 0) {
                 clientListDiv.innerHTML = '<div class="empty-message">👥 هیچ کاربر متصلی نیست</div>';
             } else {
-                clientListDiv.innerHTML = data.clients.map(c => `
-                    <div class="client-item">
-                        <div class="client-name">
-                            <span>👤</span> ${escapeHtml(c.name)}
+                // نام کاربر جاری را از localStorage یا از MY_UNIQUE_NAME بگیر
+                const currentUserName = MY_UNIQUE_NAME;
+
+                clientListDiv.innerHTML = data.clients.map(c => {
+                    // اگر نام کاربر با نام کاربر جاری یکی است، برچسب "(خودم)" اضافه کن
+                    let displayName = escapeHtml(c.name);
+                    if (c.name === currentUserName) {
+                        displayName = `${displayName} <span style="background:#10B981; color:white; padding:2px 8px; border-radius:20px; font-size:0.6rem; margin-right:8px;">خودم</span>`;
+                    }
+
+                    return `
+                        <div class="client-item">
+                            <div class="client-name">
+                                <span>👤</span> ${displayName}
+                            </div>
+                            <div class="client-ip">📡 ${c.ip}</div>
+                            <div class="client-os">💻 ${escapeHtml(c.os || 'ناشناس')}</div>
                         </div>
-                        <div class="client-ip">📡 ${c.ip}</div>
-                        <div class="client-os">💻 ${escapeHtml(c.os || 'ناشناس')}</div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
+            // ========================================
         } catch (err) {
             console.error(err);
             document.getElementById('clientList').innerHTML = '<div class="empty-message">❌ خطا در دریافت اطلاعات</div>';

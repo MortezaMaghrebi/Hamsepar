@@ -36,6 +36,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="همسپار"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#1F2937"
                         android:textSize="28sp"
                         android:textStyle="bold" />
@@ -44,6 +45,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="اشتراک‌گذاری فایل بدون اینترنت"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#6B7280"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -52,12 +54,13 @@
                     android:id="@+id/txtUserInfo"
                     android:layout_width="wrap_content"
                     android:layout_height="wrap_content"
-                    android:background="#E0E7FF"
+                    android:background="@drawable/tv_user_bg"
                     android:padding="8dp"
                     android:paddingStart="16dp"
                     android:paddingEnd="16dp"
                     android:text="کاربر"
-                    android:textColor="#4F46E5"
+                    android:fontFamily="@font/yekan"
+                    android:textColor="#ffffff"
                     android:textSize="12sp"
                     android:textStyle="bold" />
             </LinearLayout>
@@ -83,6 +86,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="📱 اسکن QR برای اتصال سریع"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#1F2937"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -91,6 +95,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:layout_marginTop="10dp"
+                        android:fontFamily="@font/yekan"
                         android:text="دستگاه دیگر به هات اسپات یا وای فای مشترک با شما وصل شود و این کیو آر کد را اسکن کند"
                         android:textColor="#6B7280"
                         android:gravity="center_horizontal"
@@ -110,6 +115,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:layout_marginTop="15dp"
+                        android:fontFamily="@font/yekan"
                         android:text="اگر نمیتواند اسکن کند این لینک را در مرورگر باز کند"
                         android:textColor="#6B7280"
                         android:textSize="12dp" />
@@ -165,6 +171,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="📤 ارسال فایل"
+                            android:fontFamily="@font/yekan"
                             android:textColor="#1F2937"
                             android:textSize="16sp"
                             android:textStyle="bold" />
@@ -173,7 +180,7 @@
                             android:id="@+id/txtPremiumBadge"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:background="#F59E0B"
+                            android:background="@drawable/tv_premium_bg"
                             android:padding="4dp"
                             android:paddingStart="12dp"
                             android:paddingEnd="12dp"
@@ -206,6 +213,7 @@
                             android:layout_height="wrap_content"
                             android:layout_marginTop="8dp"
                             android:text="برای به اشتراک گذاری کلیک کنید"
+                            android:fontFamily="@font/yekan"
                             android:textColor="#334155"
                             android:textSize="14sp"
                             android:textStyle="bold" />
@@ -214,6 +222,7 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="فایل خود را انتخاب کنید"
+                            android:fontFamily="@font/yekan"
                             android:textColor="#94A3B8"
                             android:textSize="11sp" />
                     </LinearLayout>
@@ -281,6 +290,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="🗂️ فایل‌های روی سرور"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#1F2937"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -290,6 +300,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="برای باز کردن فایل کلیک کنید"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#6B7280"
                         android:textSize="11sp" />
 
@@ -315,6 +326,7 @@
                             android:layout_marginEnd="8dp"
                             android:backgroundTint="#3B82F6"
                             android:text="📁 باز کردن پوشه"
+                            android:fontFamily="@font/yekan"
                             android:textColor="#FFFFFF"
                             android:textStyle="bold" />
 
@@ -326,6 +338,7 @@
                             android:layout_marginStart="8dp"
                             android:backgroundTint="#EF4444"
                             android:text="🗑️ حذف همه"
+                            android:fontFamily="@font/yekan"
                             android:textColor="#FFFFFF"
                             android:textStyle="bold" />
                     </LinearLayout>
@@ -351,6 +364,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="👥 کاربران متصل"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#1F2937"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -392,6 +406,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="وضعیت سرور"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#6B7280"
                         android:textSize="12sp" />
 
@@ -407,6 +422,7 @@
                             android:layout_height="wrap_content"
                             android:layout_weight="1"
                             android:text="فعال"
+                            android:fontFamily="@font/yekan"
                             android:textColor="#10B981"
                             android:textSize="24sp"
                             android:textStyle="bold" />
@@ -460,6 +476,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:text="🚀 چگونه از همسپار استفاده کنم؟"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#FFFFFF"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -469,11 +486,12 @@
                         android:layout_height="wrap_content"
                         android:lineSpacingExtra="8dp"
                         android:textColor="#FFFFFF"
+                        android:fontFamily="@font/yekan"
                         android:textSize="15dp"
                         android:gravity="right"
                         android:layoutDirection="rtl"
                         android:textDirection="rtl"
-                        android:text="1️⃣ هات‌اسپات گوشی خود را روشن کنید\n2️⃣ دستگاه دیگر (گوشی یا کامپیوتر) را به هات‌اسپات وصل کنید\n3️⃣ QR کد را با دستگاه دیگر اسکن کنید یا لینک را در مرورگر وارد کنید\n4️⃣ فایل خود را آپلود یا دانلود کنید\n💡 نکته: هر دو دستگاه باید به یک شبکه وای‌فای متصل باشند و اگر در انتخاب آی پی هنگام ایجاد سرور دقت کنید و اگر نشد آی پی دیگر را انتخاب کنید" />
+                        android:text="1️⃣ هات‌اسپات گوشی خود را روشن کنید\n2️⃣ دستگاه دیگر (گوشی یا کامپیوتر) را به هات‌اسپات وصل کنید\n3️⃣ QR کد را با دستگاه دیگر اسکن کنید یا لینک را در مرورگر وارد کنید\n4️⃣ فایل خود را آپلود یا دانلود کنید\n💡 نکته: هر دو دستگاه باید به یک شبکه وای‌فای متصل باشند و در انتخاب آی پی هنگام ایجاد سرور دقت کنید و اگر نشد آی پی دیگر را انتخاب کنید" />
 
                 </LinearLayout>
             </androidx.cardview.widget.CardView>

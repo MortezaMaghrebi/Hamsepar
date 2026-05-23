@@ -179,8 +179,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
     private void loadSettings() {
         SharedPreferences securityPrefs = getSharedPreferences("app_security", MODE_PRIVATE);
 
-        SharedPreferences billingPrefs = getSharedPreferences("PREFS_SILENT_SOUND", MODE_PRIVATE);
-        isPremium = billingPrefs.getBoolean("premium_activated", false);
+
+        isPremium = BillingManager.getInstance(ServerDashboardActivity.this).isPremiumActivated();
 
         if (isPremium) {
             txtPremiumBadge.setVisibility(View.VISIBLE);
@@ -455,6 +455,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
             boolean isSelfInList = false;
             for (ClientItem client : clientList) {
                 if (client.getName().equals(userName)) {
+                    client.name+=" (خودم)";
                     isSelfInList = true;
                     break;
                 }

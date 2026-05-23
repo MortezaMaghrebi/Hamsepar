@@ -1,7 +1,7 @@
 package com.codestoon.hamsepar;
 
 public class ClientItem {
-    private String name;
+    public String name;
     private String ip;
     private String os;
 

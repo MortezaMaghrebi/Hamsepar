@@ -83,7 +83,6 @@ public class MainActivity extends AppCompatActivity {
     private ImageView imgQrCode;
     private View indicatorStatus;
     private CheckBox chkProtectDelete;
-    private EditText edtDeletePassword;
 
     private FileServer webServer;
     private String currentIp;
@@ -107,30 +106,18 @@ public class MainActivity extends AppCompatActivity {
         imgQrCode = findViewById(R.id.imgQrCode);
         indicatorStatus = findViewById(R.id.indicatorStatus);
         chkProtectDelete = findViewById(R.id.chkProtectDelete);
-        edtDeletePassword = findViewById(R.id.edtDeletePassword);
+
 
         prefs = getSharedPreferences("app_security", MODE_PRIVATE);
         deleteProtectionEnabled = prefs.getBoolean("protect_delete", false);
         deletePassword = prefs.getString("delete_password", "1234");
         chkProtectDelete.setChecked(deleteProtectionEnabled);
-        edtDeletePassword.setText(deletePassword);
-        edtDeletePassword.setEnabled(deleteProtectionEnabled);
 
         chkProtectDelete.setOnCheckedChangeListener((buttonView, isChecked) -> {
             deleteProtectionEnabled = isChecked;
-            edtDeletePassword.setEnabled(isChecked);
             prefs.edit().putBoolean("protect_delete", isChecked).apply();
         });
 
-        edtDeletePassword.setOnFocusChangeListener((v, hasFocus) -> {
-            if (!hasFocus) {
-                String newPass = edtDeletePassword.getText().toString().trim();
-                if (!newPass.isEmpty()) {
-                    deletePassword = newPass;
-                    prefs.edit().putString("delete_password", deletePassword).apply();
-                }
-            }
-        });
 
         checkPermissions();
         btnStartStop.setOnClickListener(v -> {
