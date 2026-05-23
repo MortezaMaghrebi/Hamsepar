@@ -13,6 +13,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.DocumentsContract;
 import android.provider.Settings;
 import android.text.format.Formatter;
 import android.util.Log;
@@ -34,6 +35,7 @@ import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
+import androidx.core.content.FileProvider;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
@@ -78,13 +80,14 @@ public class ServerDashboardActivity extends AppCompatActivity {
     private LinearLayout uploadArea;
     private ProgressBar progressBar;
     private ImageView imgQrCode;
-    private Button btnCopyUrl, btnDeleteAll;
+    private Button btnCopyUrl, btnDeleteAll, btnOpenFolder ;
     private RecyclerView  recyclerClients;
     private LinearLayout layoutFilesContainer;
 
     // Adapters
     private FileListAdapter fileAdapter;
     private ClientListAdapter clientAdapter;
+    private RecyclerView recyclerFiles;
 
     // Data
     private List<FileItem> fileList = new ArrayList<>();
@@ -144,8 +147,11 @@ public class ServerDashboardActivity extends AppCompatActivity {
         imgQrCode = findViewById(R.id.imgQrCode);
         btnCopyUrl = findViewById(R.id.btnCopyUrl);
         btnDeleteAll = findViewById(R.id.btnDeleteAll);
-        layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
+        btnOpenFolder = findViewById(R.id.btnOpenFolder);
+        //layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
         recyclerClients = findViewById(R.id.recyclerClients);
+        recyclerFiles = findViewById(R.id.recyclerFiles);
+        recyclerFiles.setLayoutManager(new LinearLayoutManager(this));
 
         recyclerClients.setLayoutManager(new LinearLayoutManager(this));
     }
@@ -203,16 +209,17 @@ public class ServerDashboardActivity extends AppCompatActivity {
         fileAdapter = new FileListAdapter();
         fileAdapter.setListener(new FileListAdapter.OnFileActionListener() {
             @Override
-            public void onDownload(String fileName) {
-                downloadFile(fileName);
+            public void onOpen(String fileName) {
+                openFile(fileName);
             }
 
             @Override
             public void onDelete(String fileName) {
-                deletesFile(fileName);
+                removeFile(fileName);
             }
         });
 
+        recyclerFiles.setAdapter(fileAdapter);  // این خط مهم است
         clientAdapter = new ClientListAdapter();
         recyclerClients.setAdapter(clientAdapter);
     }
@@ -221,7 +228,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
         uploadArea.setOnClickListener(v -> openFilePicker());
         btnCopyUrl.setOnClickListener(v -> copyServerUrl());
         btnDeleteAll.setOnClickListener(v -> deleteAllFiles());
-
+        btnOpenFolder.setOnClickListener(v -> openFilesFolder());
         swipeRefresh.setOnRefreshListener(() -> {
             refreshData();
             swipeRefresh.setRefreshing(false);
@@ -429,7 +436,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
             long totalSize = obj.getLong("totalSize");
 
             runOnUiThread(() -> {
-                displayFiles(fileList);  // متد جدید
+                // استفاده از Adapter به جای displayFiles
+                fileAdapter.setFiles(new ArrayList<>(fileList));
                 clientAdapter.setClients(new ArrayList<>(clientList));
                 txtClientsCount.setText(String.valueOf(clientList.size()));
                 txtStats.setText(String.format(Locale.getDefault(), "📊 %d فایل | حجم کل: %s",
@@ -652,15 +660,13 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 return;
             }
 
-            for (int i = 0; i < files.size(); i++) {
-                FileItem file = files.get(i);
+            for (FileItem file : files) {
                 View itemView = LayoutInflater.from(this).inflate(R.layout.item_file, layoutFilesContainer, false);
 
                 TextView txtIcon = itemView.findViewById(R.id.txtFileIcon);
                 TextView txtName = itemView.findViewById(R.id.txtFileName);
                 TextView txtSize = itemView.findViewById(R.id.txtFileSize);
-                Button btnDownload = itemView.findViewById(R.id.btnDownload);
-                Button btnDelete = itemView.findViewById(R.id.btnDelete);
+                ImageView imgDelete = itemView.findViewById(R.id.imgDelete);  // تغییر به ImageView
 
                 txtIcon.setText(getFileIcon(file.getName()));
                 txtName.setText(file.getName());
@@ -668,26 +674,91 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
                 final String fileName = file.getName();
 
-                // روش مطمئن برای کلیک
-                btnDownload.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Log.d("DOWNLOAD", "دانلود: " + fileName);
-                        downloadFile(fileName);
-                    }
-                });
+                // کلیک روی کل آیتم - باز کردن فایل
+                itemView.setOnClickListener(v -> openFile(fileName));
 
-                btnDelete.setOnClickListener(new View.OnClickListener() {
-                    @Override
-                    public void onClick(View v) {
-                        Log.d("DELETE", "حذف: " + fileName);
-                        deletesFile(fileName);
-                    }
-                });
+                // کلیک روی آیکون حذف
+                imgDelete.setOnClickListener(v -> removeFile(fileName));
 
                 layoutFilesContainer.addView(itemView);
             }
         });
+    }
+    // متد جدید برای باز کردن/اجرای فایل
+    private void openFile(String fileName) {
+        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        File file = new File(sharedFolder, fileName);
+
+        if (!file.exists()) {
+            Toast.makeText(this, "فایل وجود ندارد", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // گرفتن Uri فایل
+        Uri fileUri = androidx.core.content.FileProvider.getUriForFile(this,
+                getPackageName() + ".fileprovider", file);
+
+        // تشخیص MIME type
+        String mimeType = getMimeType(fileName);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(fileUri, mimeType);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
+
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // اگر برنامه‌ای برای باز کردن فایل وجود نداشت
+            Toast.makeText(this, "برنامه‌ای برای باز کردن این فایل یافت نشد", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    // متد کمکی برای تشخیص MIME type
+    private String getMimeType(String fileName) {
+        String extension = fileName.substring(fileName.lastIndexOf(".") + 1).toLowerCase(Locale.ROOT);
+
+        switch (extension) {
+            // تصاویر
+            case "jpg": case "jpeg": return "image/jpeg";
+            case "png": return "image/png";
+            case "gif": return "image/gif";
+            case "bmp": return "image/bmp";
+            case "webp": return "image/webp";
+
+            // ویدیوها
+            case "mp4": return "video/mp4";
+            case "mkv": return "video/x-matroska";
+            case "avi": return "video/x-msvideo";
+            case "3gp": return "video/3gpp";
+
+            // صداها
+            case "mp3": return "audio/mpeg";
+            case "wav": return "audio/wav";
+            case "flac": return "audio/flac";
+            case "aac": return "audio/aac";
+
+            // اسناد
+            case "pdf": return "application/pdf";
+            case "doc": return "application/msword";
+            case "docx": return "application/vnd.openxmlformats-officedocument.wordprocessingml.document";
+            case "xls": return "application/vnd.ms-excel";
+            case "xlsx": return "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
+            case "ppt": return "application/vnd.ms-powerpoint";
+            case "pptx": return "application/vnd.openxmlformats-officedocument.presentationml.presentation";
+            case "txt": return "text/plain";
+
+            // آرشیو
+            case "zip": return "application/zip";
+            case "rar": return "application/x-rar-compressed";
+            case "7z": return "application/x-7z-compressed";
+
+            // اپلیکیشن
+            case "apk": return "application/vnd.android.package-archive";
+
+            default: return "*/*";
+        }
     }
 
     // متد کمکی برای آیکون فایل:
@@ -706,55 +777,9 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
 
 
-    private void showPasswordDialog(String fileName) {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-        input.setHint("رمز حذف");
 
-        new AlertDialog.Builder(this)
-                .setTitle("تأیید رمز")
-                .setView(input)
-                .setPositiveButton("تأیید", (dialog, which) -> {
-                    String pass = input.getText().toString();
-                    performDelete(fileName, pass);
-                })
-                .setNegativeButton("انصراف", null)
-                .show();
-    }
 
-    private void performDelete(String fileName, String password) {
-        new Thread(() -> {
-            try {
-                okhttp3.FormBody.Builder formBuilder = new okhttp3.FormBody.Builder()
-                        .add("fileName", fileName);
-                if (password != null) {
-                    formBuilder.add("password", password);
-                }
 
-                Request request = new Request.Builder()
-                        .url("http://" + currentIp + ":8080/delete")
-                        .post(formBuilder.build())
-                        .build();
-
-                Response response = okHttpClient.newCall(request).execute();
-
-                runOnUiThread(() -> {
-                    if (response.isSuccessful()) {
-                        Toast.makeText(this, "فایل حذف شد", Toast.LENGTH_SHORT).show();
-                        refreshData();
-                    } else if (response.code() == 401) {
-                        Toast.makeText(this, "رمز اشتباه است", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "خطا در حذف فایل", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "خطا: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-            }
-        }).start();
-    }
 
 
 
@@ -791,7 +816,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
         return String.format(Locale.getDefault(), "%.1f %s", bytes / Math.pow(1024, digitGroups), units[digitGroups]);
     }
 
-    private void deletesFile(String fileName) {
+    private void removeFile(String fileName) {
         // مسیر پوشه SharedFiles
         File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
         final File fileToDelete = new File(sharedFolder, fileName);
@@ -871,6 +896,39 @@ public class ServerDashboardActivity extends AppCompatActivity {
         }).start();
     }
 
+    private void openFilesFolder() {
+        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+
+        if (!sharedFolder.exists()) {
+            sharedFolder.mkdirs();
+            Toast.makeText(this, "پوشه فایل‌ها ایجاد شد", Toast.LENGTH_SHORT).show();
+        }
+
+        // برای اندروید 7+
+        Uri folderUri = FileProvider.getUriForFile(this,
+                getPackageName() + ".fileprovider", sharedFolder);
+
+        Intent intent = new Intent(Intent.ACTION_VIEW);
+        intent.setDataAndType(folderUri, DocumentsContract.Document.MIME_TYPE_DIR);
+        intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+        intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+
+        try {
+            startActivity(intent);
+        } catch (Exception e) {
+            e.printStackTrace();
+            // روش جایگزین: باز کردن با Intent.ACTION_OPEN_DOCUMENT_TREE
+            try {
+                Intent altIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
+                altIntent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, folderUri);
+                altIntent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
+                altIntent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
+                startActivity(altIntent);
+            } catch (Exception e2) {
+                Toast.makeText(this, "لطفاً یک فایل منیجر نصب کنید", Toast.LENGTH_LONG).show();
+            }
+        }
+    }
     @Override
     protected void onDestroy() {
         super.onDestroy();

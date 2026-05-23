@@ -7,8 +7,9 @@
     android:padding="12dp"
     android:layout_marginBottom="8dp"
     android:gravity="center_vertical"
-    android:clickable="false"
-    android:focusable="false">
+    android:descendantFocusability="blocksDescendants"
+    android:clickable="true"
+    android:focusable="true">
 
     <TextView
         android:id="@+id/txtFileIcon"
@@ -41,27 +42,13 @@
             android:textSize="10sp" />
     </LinearLayout>
 
-    <Button
-        android:id="@+id/btnDownload"
-        android:layout_width="48dp"
+    <ImageView
+        android:id="@+id/imgDelete"
+        android:layout_width="36dp"
         android:layout_height="36dp"
-        android:backgroundTint="#10B981"
-        android:text="⬇️"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:clickable="true"
-        android:focusable="true" />
-
-    <Button
-        android:id="@+id/btnDelete"
-        android:layout_width="48dp"
-        android:layout_height="36dp"
-        android:layout_marginStart="8dp"
-        android:backgroundTint="#EF4444"
-        android:text="🗑️"
-        android:textColor="#FFFFFF"
-        android:textSize="14sp"
-        android:clickable="true"
-        android:focusable="true" />
+        android:src="@drawable/ic_delete"
+        android:padding="8dp"
+        android:background="?attr/selectableItemBackgroundBorderless"
+        android:contentDescription="حذف فایل" />
 
 </LinearLayout>
