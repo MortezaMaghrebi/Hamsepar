@@ -6,7 +6,9 @@
     android:orientation="horizontal"
     android:padding="12dp"
     android:layout_marginBottom="8dp"
-    android:gravity="center_vertical">
+    android:gravity="center_vertical"
+    android:clickable="false"
+    android:focusable="false">
 
     <TextView
         android:id="@+id/txtFileIcon"
@@ -41,20 +43,25 @@
 
     <Button
         android:id="@+id/btnDownload"
-        android:layout_width="wrap_content"
-        android:layout_height="32dp"
+        android:layout_width="48dp"
+        android:layout_height="36dp"
         android:backgroundTint="#10B981"
         android:text="⬇️"
         android:textColor="#FFFFFF"
-        android:textSize="12sp" />
+        android:textSize="14sp"
+        android:clickable="true"
+        android:focusable="true" />
 
     <Button
         android:id="@+id/btnDelete"
-        android:layout_width="wrap_content"
-        android:layout_height="32dp"
-        android:layout_marginStart="4dp"
+        android:layout_width="48dp"
+        android:layout_height="36dp"
+        android:layout_marginStart="8dp"
         android:backgroundTint="#EF4444"
         android:text="🗑️"
         android:textColor="#FFFFFF"
-        android:textSize="12sp" />
+        android:textSize="14sp"
+        android:clickable="true"
+        android:focusable="true" />
+
 </LinearLayout>

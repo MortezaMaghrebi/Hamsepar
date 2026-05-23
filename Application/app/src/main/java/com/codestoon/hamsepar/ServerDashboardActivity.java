@@ -15,6 +15,7 @@ import android.os.Handler;
 import android.os.Looper;
 import android.provider.Settings;
 import android.text.format.Formatter;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -232,11 +233,129 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 new ActivityResultContracts.GetContent(),
                 uri -> {
                     if (uri != null) {
-                        uploadFile(uri);
+                        // دریافت نام فایل از Uri
+                        String fileName = getFileNameFromUri(uri);
+                        if (fileName == null) {
+                            fileName = "file_" + System.currentTimeMillis();
+                        }
+
+                        // کپی فایل به پوشه اپلیکیشن
+                        copyFileToAppFolder(uri, fileName);
                     }
                 }
         );
     }
+
+    private void copyFileToAppFolder(Uri sourceUri, String fileName) {
+        // بررسی حجم فایل برای کاربران غیر پریمیوم
+        if (!isPremium) {
+            long fileSize = getFileSize(sourceUri);
+            if (fileSize > 500 * 1024 * 1024) {
+                runOnUiThread(() -> {
+                    Toast.makeText(this, "حجم فایل بیش از 500 مگابایت است. نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
+                });
+                return;
+            }
+        }
+
+        // پوشه مقصد
+        File destFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        if (!destFolder.exists()) {
+            destFolder.mkdirs();
+        }
+
+        File destFile = new File(destFolder, fileName);
+
+        // اگر فایل قبلاً وجود دارد، نام جدید بساز
+        if (destFile.exists()) {
+            String nameWithoutExt = fileName;
+            String ext = "";
+            int dotIndex = fileName.lastIndexOf('.');
+            if (dotIndex > 0) {
+                nameWithoutExt = fileName.substring(0, dotIndex);
+                ext = fileName.substring(dotIndex);
+            }
+            int counter = 1;
+            while (destFile.exists()) {
+                String newName = nameWithoutExt + " (" + counter + ")" + ext;
+                destFile = new File(destFolder, newName);
+                counter++;
+            }
+        }
+
+        final File finalDestFile = destFile;
+        final long totalSize = getFileSize(sourceUri);
+
+        runOnUiThread(() -> {
+            progressBar.setVisibility(View.VISIBLE);
+            progressBar.setMax(100);
+            progressBar.setProgress(0);
+            txtUploadProgress.setVisibility(View.VISIBLE);
+            txtUploadProgress.setText("در حال کپی فایل: 0%");
+        });
+
+        new Thread(() -> {
+            try (InputStream inputStream = getContentResolver().openInputStream(sourceUri);
+                 FileOutputStream outputStream = new FileOutputStream(finalDestFile)) {
+
+                byte[] buffer = new byte[131072]; // 128KB بافر برای کپی سریع‌تر
+                int length;
+                long totalRead = 0;
+                int lastProgress = -1;
+                long lastTime = System.currentTimeMillis();
+
+                while ((length = inputStream.read(buffer)) > 0) {
+                    outputStream.write(buffer, 0, length);
+                    totalRead += length;
+
+                    final int progress = (int) ((totalRead * 100) / totalSize);
+                    // آپدیت UI هر 200 میلی‌ثانیه یکبار
+                    if (progress != lastProgress && System.currentTimeMillis() - lastTime > 200) {
+                        lastProgress = progress;
+                        lastTime = System.currentTimeMillis();
+                        final int finalProgress = progress;
+                        final long finalTotalRead = totalRead;
+                        runOnUiThread(() -> {
+                            progressBar.setProgress(finalProgress);
+                            txtUploadProgress.setText(String.format(Locale.getDefault(),
+                                    "در حال کپی: %d%% (%.1f MB / %.1f MB)",
+                                    finalProgress, finalTotalRead / (1024.0 * 1024), totalSize / (1024.0 * 1024)));
+                        });
+                    }
+                }
+
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    txtUploadProgress.setVisibility(View.GONE);
+                    Toast.makeText(this, "✅ فایل با موفقیت در برنامه ذخیره شد\n" + finalDestFile.getName(), Toast.LENGTH_LONG).show();
+
+                    // افزایش شمارنده آپلود موفق (اگر نیاز داری)
+                    incrementUploadCount();
+
+                    // رفرش لیست فایل‌ها
+                    refreshData();
+                });
+
+            } catch (IOException e) {
+                e.printStackTrace();
+                runOnUiThread(() -> {
+                    progressBar.setVisibility(View.GONE);
+                    txtUploadProgress.setVisibility(View.GONE);
+                    Toast.makeText(this, "❌ خطا در کپی فایل: " + e.getMessage(), Toast.LENGTH_LONG).show();
+                });
+            }
+        }).start();
+    }
+
+    // متد کمکی برای افزایش شمارنده آپلود (مشابه MainActivity)
+    private void incrementUploadCount() {
+        SharedPreferences prefs = getSharedPreferences("upload_counter", MODE_PRIVATE);
+        int count = prefs.getInt("count", 0);
+        count++;
+        prefs.edit().putInt("count", count).apply();
+    }
+
+
 
     private void openFilePicker() {
         filePickerLauncher.launch("*/*");
@@ -322,27 +441,26 @@ public class ServerDashboardActivity extends AppCompatActivity {
         }
     }
     String fileName;
+    long totalRead;
     private void uploadFile(Uri uri) {
-        if (!isPremium) {
-            try (InputStream is = getContentResolver().openInputStream(uri)) {
-                long size = is.available();
-                if (size > 500 * 1024 * 1024) {
-                    runOnUiThread(() -> {
-                        Toast.makeText(this, "حجم فایل بیش از 500 مگابایت است. نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
-                    });
-                    return;
-                }
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+        // بررسی حجم فایل
+        long fileSize = getFileSize(uri);
+
+        if (!isPremium && fileSize > 500 * 1024 * 1024) {
+            runOnUiThread(() -> {
+                Toast.makeText(this, "حجم فایل بیش از 500 مگابایت است. نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
+            });
+            return;
         }
 
         String fileName = getFileNameFromUri(uri);
         if (fileName == null) fileName = "file_" + System.currentTimeMillis();
         final String finalFileName = fileName;
+        final long totalSize = fileSize;
 
         runOnUiThread(() -> {
             progressBar.setVisibility(View.VISIBLE);
+            progressBar.setMax(100);
             progressBar.setProgress(0);
             txtUploadProgress.setVisibility(View.VISIBLE);
             txtUploadProgress.setText("در حال آپلود: 0%");
@@ -363,14 +481,11 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 connection.setRequestMethod("POST");
                 connection.setRequestProperty("Connection", "Keep-Alive");
                 connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-                connection.setConnectTimeout(30000);
-                connection.setReadTimeout(120000);
+                connection.setConnectTimeout(60000);      // 60 ثانیه
+                connection.setReadTimeout(600000);        // 10 دقیقه برای فایل بزرگ
 
-                // دریافت اندازه فایل برای نمایش پیشرفت
-                long fileSize;
-                try (InputStream sizeIs = getContentResolver().openInputStream(uri)) {
-                    fileSize = sizeIs.available();
-                }
+                // تنظیم بافر بزرگتر برای فایل‌های بزرگ
+                connection.setChunkedStreamingMode(32768); // 32KB chunk size
 
                 DataOutputStream outputStream = new DataOutputStream(connection.getOutputStream());
 
@@ -379,26 +494,59 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 outputStream.writeBytes("Content-Disposition: form-data; name=\"file\"; filename=\"" + finalFileName + "\"" + lineEnd);
                 outputStream.writeBytes("Content-Type: application/octet-stream" + lineEnd);
                 outputStream.writeBytes(lineEnd);
+                outputStream.flush();
 
-                // آپلود با بافر - بدون بارگذاری کل فایل در حافظه
+                // آپلود با بافر بهینه
                 InputStream fileInputStream = getContentResolver().openInputStream(uri);
-                byte[] buffer = new byte[8192];  // بافر 8KB
+                byte[] buffer = new byte[65536]; // 64KB بافر (بهتر از 8KB)
                 int bytesRead;
-                long totalRead = 0;
+                totalRead = 0;
                 int lastProgress = -1;
+                long lastTime = System.currentTimeMillis();
 
-                while ((bytesRead = fileInputStream.read(buffer)) != -1) {
-                    outputStream.write(buffer, 0, bytesRead);
-                    totalRead += bytesRead;
+                // تنظیم timeout برای هر بار خواندن
+                if (fileInputStream != null && fileInputStream instanceof java.io.FileInputStream) {
+                    java.io.FileInputStream fis = (java.io.FileInputStream) fileInputStream;
+                    java.nio.channels.FileChannel channel = fis.getChannel();
+                    // استفاده از channel برای خواندن سریع‌تر
+                    java.nio.ByteBuffer byteBuffer = java.nio.ByteBuffer.allocateDirect(65536);
+                    while ((bytesRead = channel.read(byteBuffer)) > 0) {
+                        byteBuffer.flip();
+                        byte[] chunk = new byte[bytesRead];
+                        byteBuffer.get(chunk);
+                        outputStream.write(chunk);
+                        totalRead += bytesRead;
+                        byteBuffer.clear();
 
-                    // به‌روزرسانی پیشرفت (هر 1% یکبار برای کاهش بار UI)
-                    final int progress = (int) ((totalRead * 100) / fileSize);
-                    if (progress != lastProgress) {
-                        lastProgress = progress;
-                        runOnUiThread(() -> {
-                            progressBar.setProgress(progress);
-                            txtUploadProgress.setText("در حال آپلود: " + progress + "%");
-                        });
+                        final int progress = (int) ((totalRead * 100) / totalSize);
+                        if (progress != lastProgress && System.currentTimeMillis() - lastTime > 200) {
+                            lastProgress = progress;
+                            lastTime = System.currentTimeMillis();
+                            final int finalProgress = progress;
+                            runOnUiThread(() -> {
+                                progressBar.setProgress(finalProgress);
+                                txtUploadProgress.setText(String.format(Locale.getDefault(), "در حال آپلود: %d%% (%.1f MB / %.1f MB)",
+                                        finalProgress, totalRead / (1024.0 * 1024), totalSize / (1024.0 * 1024)));
+                            });
+                        }
+                    }
+                    channel.close();
+                } else {
+                    // Fallback به روش معمولی
+                    while ((bytesRead = fileInputStream.read(buffer)) != -1) {
+                        outputStream.write(buffer, 0, bytesRead);
+                        totalRead += bytesRead;
+
+                        final int progress = (int) ((totalRead * 100) / totalSize);
+                        if (progress != lastProgress && System.currentTimeMillis() - lastTime > 200) {
+                            lastProgress = progress;
+                            lastTime = System.currentTimeMillis();
+                            final int finalProgress = progress;
+                            runOnUiThread(() -> {
+                                progressBar.setProgress(finalProgress);
+                                txtUploadProgress.setText(String.format(Locale.getDefault(), "در حال آپلود: %d%%", finalProgress));
+                            });
+                        }
                     }
                 }
 
@@ -414,7 +562,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
                     txtUploadProgress.setVisibility(View.GONE);
                     if (responseCode == HttpURLConnection.HTTP_OK) {
                         Toast.makeText(this, "فایل با موفقیت آپلود شد", Toast.LENGTH_SHORT).show();
-                        refreshData();
+                        new Handler(Looper.getMainLooper()).postDelayed(() -> refreshData(), 1000);
                     } else if (responseCode == 403) {
                         Toast.makeText(this, "حجم فایل بیش از حد مجاز است. نسخه ویژه را تهیه کنید.", Toast.LENGTH_LONG).show();
                     } else {
@@ -433,6 +581,17 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 if (connection != null) connection.disconnect();
             }
         }).start();
+    }
+
+
+    // متد کمکی برای گرفتن حجم فایل
+    private long getFileSize(Uri uri) {
+        try (InputStream is = getContentResolver().openInputStream(uri)) {
+            return is.available();
+        } catch (IOException e) {
+            e.printStackTrace();
+            return 0;
+        }
     }
 
     private byte[] readBytes(InputStream is) throws IOException {
@@ -476,23 +635,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
-    private void deletesFile(String fileName) {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("حذف فایل");
-        builder.setMessage("آیا از حذف فایل \"" + fileName + "\" مطمئن هستید؟");
 
-        if (deleteProtection) {
-            builder.setNeutralButton("ورود رمز", (dialog, which) -> {
-                showPasswordDialog(fileName);
-            });
-        }
-
-        builder.setPositiveButton("حذف", (dialog, which) -> {
-            performDelete(fileName, null);
-        });
-        builder.setNegativeButton("انصراف", null);
-        builder.show();
-    }
 
     private void displayFiles(List<FileItem> files) {
         runOnUiThread(() -> {
@@ -509,7 +652,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 return;
             }
 
-            for (FileItem file : files) {
+            for (int i = 0; i < files.size(); i++) {
+                FileItem file = files.get(i);
                 View itemView = LayoutInflater.from(this).inflate(R.layout.item_file, layoutFilesContainer, false);
 
                 TextView txtIcon = itemView.findViewById(R.id.txtFileIcon);
@@ -522,8 +666,24 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 txtName.setText(file.getName());
                 txtSize.setText(formatSize(file.getSize()));
 
-                btnDownload.setOnClickListener(v -> downloadFile(file.getName()));
-                btnDelete.setOnClickListener(v -> deleteFile(file.getName()));
+                final String fileName = file.getName();
+
+                // روش مطمئن برای کلیک
+                btnDownload.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Log.d("DOWNLOAD", "دانلود: " + fileName);
+                        downloadFile(fileName);
+                    }
+                });
+
+                btnDelete.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Log.d("DELETE", "حذف: " + fileName);
+                        deletesFile(fileName);
+                    }
+                });
 
                 layoutFilesContainer.addView(itemView);
             }
@@ -596,71 +756,9 @@ public class ServerDashboardActivity extends AppCompatActivity {
         }).start();
     }
 
-    private void deleteAllFiles() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("حذف همه فایل‌ها");
-        builder.setMessage("آیا از حذف همه فایل‌ها مطمئن هستید؟");
 
-        if (deleteProtection) {
-            builder.setNeutralButton("ورود رمز", (dialog, which) -> {
-                showPasswordForDeleteAll();
-            });
-        }
 
-        builder.setPositiveButton("حذف همه", (dialog, which) -> {
-            performDeleteAll(null);
-        });
-        builder.setNegativeButton("انصراف", null);
-        builder.show();
-    }
 
-    private void showPasswordForDeleteAll() {
-        android.widget.EditText input = new android.widget.EditText(this);
-        input.setInputType(android.text.InputType.TYPE_CLASS_NUMBER | android.text.InputType.TYPE_NUMBER_VARIATION_PASSWORD);
-        input.setHint("رمز حذف");
-
-        new AlertDialog.Builder(this)
-                .setTitle("تأیید رمز")
-                .setView(input)
-                .setPositiveButton("تأیید", (dialog, which) -> {
-                    performDeleteAll(input.getText().toString());
-                })
-                .setNegativeButton("انصراف", null)
-                .show();
-    }
-
-    private void performDeleteAll(String password) {
-        new Thread(() -> {
-            try {
-                okhttp3.FormBody.Builder formBuilder = new okhttp3.FormBody.Builder();
-                if (password != null) {
-                    formBuilder.add("password", password);
-                }
-
-                Request request = new Request.Builder()
-                        .url("http://" + currentIp + ":8080/delete-all")
-                        .post(formBuilder.build())
-                        .build();
-
-                Response response = okHttpClient.newCall(request).execute();
-
-                runOnUiThread(() -> {
-                    if (response.isSuccessful()) {
-                        Toast.makeText(this, "همه فایل‌ها حذف شدند", Toast.LENGTH_SHORT).show();
-                        refreshData();
-                    } else if (response.code() == 401) {
-                        Toast.makeText(this, "رمز اشتباه است", Toast.LENGTH_SHORT).show();
-                    } else {
-                        Toast.makeText(this, "خطا در حذف فایل‌ها", Toast.LENGTH_SHORT).show();
-                    }
-                });
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                runOnUiThread(() -> Toast.makeText(this, "خطا: " + e.getMessage(), Toast.LENGTH_SHORT).show());
-            }
-        }).start();
-    }
 
     private void copyServerUrl() {
         String url = txtServerUrl.getText().toString();
@@ -691,6 +789,86 @@ public class ServerDashboardActivity extends AppCompatActivity {
         final String[] units = new String[]{"B", "KB", "MB", "GB"};
         int digitGroups = (int) (Math.log10(bytes) / Math.log10(1024));
         return String.format(Locale.getDefault(), "%.1f %s", bytes / Math.pow(1024, digitGroups), units[digitGroups]);
+    }
+
+    private void deletesFile(String fileName) {
+        // مسیر پوشه SharedFiles
+        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        final File fileToDelete = new File(sharedFolder, fileName);
+
+        // بررسی وجود فایل
+        if (!fileToDelete.exists()) {
+            Toast.makeText(this, "فایل وجود ندارد", Toast.LENGTH_SHORT).show();
+            refreshData();
+            return;
+        }
+
+        // دیالوگ ساده تأیید (بدون رمز)
+        new AlertDialog.Builder(this)
+                .setTitle("حذف فایل")
+                .setMessage("آیا از حذف فایل \"" + fileName + "\" مطمئن هستید؟")
+                .setPositiveButton("حذف", (dialog, which) -> {
+                    performDirectDelete(fileToDelete, fileName);
+                })
+                .setNegativeButton("انصراف", null)
+                .show();
+    }
+
+    private void performDirectDelete(File file, String fileName) {
+        new Thread(() -> {
+            boolean deleted = file.delete();
+
+            runOnUiThread(() -> {
+                if (deleted) {
+                    Toast.makeText(this, "🗑️ فایل \"" + fileName + "\" حذف شد", Toast.LENGTH_SHORT).show();
+                    refreshData(); // رفرش لیست
+                } else {
+                    Toast.makeText(this, "خطا در حذف فایل", Toast.LENGTH_SHORT).show();
+                }
+            });
+        }).start();
+    }
+
+    // حذف همه فایل‌ها - بدون رمز
+    private void deleteAllFiles() {
+        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        File[] files = sharedFolder.listFiles();
+
+        if (files == null || files.length == 0) {
+            Toast.makeText(this, "هیچ فایلی برای حذف وجود ندارد", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        new AlertDialog.Builder(this)
+                .setTitle("حذف همه فایل‌ها")
+                .setMessage("آیا از حذف " + files.length + " فایل مطمئن هستید؟")
+                .setPositiveButton("حذف همه", (dialog, which) -> {
+                    performDirectDeleteAll();
+                })
+                .setNegativeButton("انصراف", null)
+                .show();
+    }
+
+    private void performDirectDeleteAll() {
+        new Thread(() -> {
+            File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+            File[] files = sharedFolder.listFiles();
+
+            int deletedCount = 0;
+            if (files != null) {
+                for (File file : files) {
+                    if (file.delete()) {
+                        deletedCount++;
+                    }
+                }
+            }
+
+            final int finalDeletedCount = deletedCount;
+            runOnUiThread(() -> {
+                Toast.makeText(this, "🗑️ " + finalDeletedCount + " فایل حذف شد", Toast.LENGTH_SHORT).show();
+                refreshData();
+            });
+        }).start();
     }
 
     @Override
