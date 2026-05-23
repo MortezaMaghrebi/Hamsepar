@@ -1,6 +1,12 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
-    <external-files-path name="shared_files" path="SharedFiles/" />
-    <external-files-path name="shared_files_root" path="." />
-    <cache-path name="cache" path="/" />
+    <external-path
+        name="documents"
+        path="Documents/Hamsepar/" />
+    <external-files-path
+        name="shared_files"
+        path="SharedFiles/" />
+    <cache-path
+        name="cache"
+        path="/" />
 </paths>

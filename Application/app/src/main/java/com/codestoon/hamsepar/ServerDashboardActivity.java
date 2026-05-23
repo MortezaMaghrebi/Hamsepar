@@ -11,6 +11,7 @@ import android.graphics.Bitmap;
 import android.net.Uri;
 import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.provider.DocumentsContract;
@@ -265,7 +266,6 @@ public class ServerDashboardActivity extends AppCompatActivity {
     }
 
     private void copyFileToAppFolder(Uri sourceUri, String fileName) {
-        // بررسی حجم فایل برای کاربران غیر پریمیوم
         if (!isPremium) {
             long fileSize = getFileSize(sourceUri);
             if (fileSize > 500 * 1024 * 1024) {
@@ -276,12 +276,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
             }
         }
 
-        // پوشه مقصد
-        File destFolder = new File(getExternalFilesDir(null), "SharedFiles");
-        if (!destFolder.exists()) {
-            destFolder.mkdirs();
-        }
-
+        // استفاده از متد جدید
+        File destFolder = getSharedFilesFolder();
         File destFile = new File(destFolder, fileName);
 
         // اگر فایل قبلاً وجود دارد، نام جدید بساز
@@ -722,7 +718,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
     // متد جدید برای باز کردن/اجرای فایل
     private void openFile(String fileName) {
-        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        File sharedFolder = getSharedFilesFolder();
         File file = new File(sharedFolder, fileName);
 
         if (!file.exists()) {
@@ -853,8 +849,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
     }
 
     private void removeFile(String fileName) {
-        // مسیر پوشه SharedFiles
-        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        File sharedFolder = getSharedFilesFolder();
         final File fileToDelete = new File(sharedFolder, fileName);
 
         // بررسی وجود فایل
@@ -892,7 +887,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
     // حذف همه فایل‌ها - بدون رمز
     private void deleteAllFiles() {
-        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        File sharedFolder = getSharedFilesFolder();
         File[] files = sharedFolder.listFiles();
 
         if (files == null || files.length == 0) {
@@ -912,7 +907,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
     private void performDirectDeleteAll() {
         new Thread(() -> {
-            File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+            File sharedFolder = getSharedFilesFolder();
             File[] files = sharedFolder.listFiles();
 
             int deletedCount = 0;
@@ -933,19 +928,18 @@ public class ServerDashboardActivity extends AppCompatActivity {
     }
 
     private void openFilesFolder() {
-        File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");
+        File sharedFolder = getSharedFilesFolder();
 
         if (!sharedFolder.exists()) {
             sharedFolder.mkdirs();
             Toast.makeText(this, "پوشه فایل‌ها ایجاد شد", Toast.LENGTH_SHORT).show();
         }
 
-        // برای اندروید 7+
+        // باز کردن پوشه با فایل منیجر
+        Intent intent = new Intent(Intent.ACTION_VIEW);
         Uri folderUri = FileProvider.getUriForFile(this,
                 getPackageName() + ".fileprovider", sharedFolder);
-
-        Intent intent = new Intent(Intent.ACTION_VIEW);
-        intent.setDataAndType(folderUri, DocumentsContract.Document.MIME_TYPE_DIR);
+        intent.setDataAndType(folderUri, "*/*");
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
 
@@ -953,7 +947,6 @@ public class ServerDashboardActivity extends AppCompatActivity {
             startActivity(intent);
         } catch (Exception e) {
             e.printStackTrace();
-            // روش جایگزین: باز کردن با Intent.ACTION_OPEN_DOCUMENT_TREE
             try {
                 Intent altIntent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
                 altIntent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, folderUri);
@@ -965,6 +958,15 @@ public class ServerDashboardActivity extends AppCompatActivity {
             }
         }
     }
+
+    private File getSharedFilesFolder() {
+        File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Hamsepar");
+        if (!folder.exists()) {
+            folder.mkdirs();
+        }
+        return folder;
+    }
+
     @Override
     protected void onDestroy() {
         super.onDestroy();

@@ -8,9 +8,12 @@ import android.content.pm.PackageManager;
 import android.graphics.Bitmap;
 import android.net.Uri;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.provider.Settings;
 import android.text.format.Formatter;
 import android.view.LayoutInflater;
 import android.view.View;
@@ -124,6 +127,8 @@ public class MainActivity extends AppCompatActivity {
 
 
         checkPermissions();
+        requestStoragePermission();
+
         btnStartStop.setOnClickListener(v -> {
             if (webServer == null) startServer();
             else stopServer();
@@ -354,6 +359,24 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
+    private void requestStoragePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            if (!Environment.isExternalStorageManager()) {
+                try {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                    intent.addCategory("android.intent.category.DEFAULT");
+                    intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
+                    startActivityForResult(intent, 101);
+                } catch (Exception e) {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                    startActivityForResult(intent, 101);
+                }
+            }
+        } else {
+            ActivityCompat.requestPermissions(this,
+                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 102);
+        }
+    }
     private List<String> getAllLocalIps() {
         List<String> ips = new ArrayList<>();
         try {
@@ -577,28 +600,38 @@ public class MainActivity extends AppCompatActivity {
 
     private void startServerWithIp(String ip) {
         currentIp = ip;
-        CURRENT_SERVER_IP = ip;  // <-- اضافه کنید
+        CURRENT_SERVER_IP = ip;
         txtLocalIp.setText(currentIp);
         String url = "http://" + currentIp + ":" + PORT;
         txtServerUrl.setText(url);
         generateQrCode(url);
 
         try {
-            File storageDir = new File(getExternalFilesDir(null), "SharedFiles");
-            if (!storageDir.exists()) storageDir.mkdirs();
+            // تغییر مسیر به پوشه Documents در حافظه داخلی
+            File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Hamsepar");
+
+            // اگر پوشه وجود ندارد، ایجاد کن
+            if (!storageDir.exists()) {
+                storageDir.mkdirs();
+            }
+
+            // برای نسخه‌های جدید اندروید، نیاز به مجوز خاص است
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+                // اندروید 11+ نیاز به مجوز خاص دارد، اما با Environment.DIRECTORY_DOCUMENTS کار می‌کند
+                if (!storageDir.exists()) {
+                    storageDir.mkdirs();
+                }
+            }
 
             boolean isUserPremium = (billingManager != null && billingManager.isPremiumActivated());
             webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword, currentIp, isUserPremium);
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             updateServerUi(true);
 
-            //mainHandler.postDelayed(() -> {
-            //    if (webServer != null && currentIp != null) {
-            //        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-            //    }
-            //}, 500);
             openBrowser();
             mainHandler.postDelayed(clientUpdater, 2000);
+
+            Toast.makeText(this, "فایل‌ها در پوشه Documents/Hamsepar ذخیره می‌شوند", Toast.LENGTH_LONG).show();
         } catch (IOException e) {
             e.printStackTrace();
             Toast.makeText(this, "خطا در شروع سرور", Toast.LENGTH_SHORT).show();
