@@ -26,6 +26,7 @@ import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
@@ -97,6 +98,8 @@ public class MainActivity extends AppCompatActivity {
     private SharedPreferences prefs;
     private boolean deleteProtectionEnabled = false;
     private String deletePassword = "";
+    private Button btnRequestPermissions;
+    private boolean hasRequiredPermissions = false;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -113,6 +116,7 @@ public class MainActivity extends AppCompatActivity {
         imgQrCode = findViewById(R.id.imgQrCode);
         indicatorStatus = findViewById(R.id.indicatorStatus);
         chkProtectDelete = findViewById(R.id.chkProtectDelete);
+        btnRequestPermissions = findViewById(R.id.btnRequestPermissions);
 
 
         prefs = getSharedPreferences("app_security", MODE_PRIVATE);
@@ -126,9 +130,12 @@ public class MainActivity extends AppCompatActivity {
         });
 
 
-        checkPermissions();
-        requestStoragePermission();
+        btnStartStop.setEnabled(false);
+        btnStartStop.setAlpha(0.5f);
 
+        btnRequestPermissions.setOnClickListener(v -> {
+            checkAndRequestPermissionsWithExplanation();
+        });
         btnStartStop.setOnClickListener(v -> {
             if (webServer == null) startServer();
             else stopServer();
@@ -700,6 +707,175 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
+    private void checkAndRequestPermissionsWithExplanation() {
+        // بررسی مجوزها
+        boolean hasInternet = ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
+        boolean hasWifiState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED;
+        boolean hasNetworkState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED;
+        boolean hasWriteStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        boolean hasReadStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+
+        // برای اندروید 11+ بررسی دسترسی به پوشه عمومی
+        boolean hasPublicAccess = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hasPublicAccess = Environment.isExternalStorageManager();
+        }
+
+        if (hasInternet && hasWifiState && hasNetworkState && hasWriteStorage && hasReadStorage && hasPublicAccess) {
+            // همه مجوزها قبلاً گرفته شده
+            hasRequiredPermissions = true;
+            btnStartStop.setEnabled(true);
+            btnStartStop.setAlpha(1f);
+            btnRequestPermissions.setVisibility(View.GONE);
+            Toast.makeText(this, "✅ همه دسترسی‌ها فعال هستند. می‌توانید سرور را روشن کنید.", Toast.LENGTH_SHORT).show();
+            return;
+        }
+
+        // نمایش دیالوگ توضیحی
+        showPermissionsExplanationDialog();
+    }
+
+    private void showPermissionsExplanationDialog() {
+        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_permission_explanation, null);
+
+        AlertDialog dialog = new AlertDialog.Builder(this)
+                .setView(dialogView)
+                .setCancelable(false)
+                .create();
+
+        TextView txtTitle = dialogView.findViewById(R.id.txtDialogTitle);
+        TextView txtMessage = dialogView.findViewById(R.id.txtDialogMessage);
+        Button btnAccept = dialogView.findViewById(R.id.btnAccept);
+        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
+
+        txtTitle.setText("🔐 دسترسی‌های لازم");
+        txtMessage.setText("برای اینکه همسپار بتواند درست کار کند، به دسترسی‌های زیر نیاز داریم:\n\n" +
+                "🌐 اینترنت - برای برقراری ارتباط بین دستگاه‌ها\n" +
+                "📁 حافظه - برای ذخیره و اشتراک‌گذاری فایل‌ها\n" +
+                "📡 وای‌فای - برای پیدا کردن دستگاه‌های متصل\n\n" +
+                "✅ این دسترسی‌ها فقط برای عملکرد برنامه استفاده می‌شوند\n" +
+                "✅ فایل‌های شما خصوصی می‌مانند\n" +
+                "✅ شما همیشه می‌توانید دسترسی‌ها را از تنظیمات لغو کنید");
+
+        btnAccept.setText("👍 قبول می‌کنم");
+        btnCancel.setText("🙅 بعداً");
+
+        btnAccept.setOnClickListener(v -> {
+            dialog.dismiss();
+            requestAllPermissions();
+        });
+
+        btnCancel.setOnClickListener(v -> {
+            dialog.dismiss();
+            Toast.makeText(this, "برای استفاده از برنامه باید دسترسی‌ها را قبول کنید", Toast.LENGTH_LONG).show();
+        });
+
+        dialog.show();
+    }
+
+    private void requestAllPermissions() {
+        List<String> permissionsNeeded = new ArrayList<>();
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.INTERNET);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_WIFI_STATE);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.ACCESS_NETWORK_STATE);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
+        }
+
+        if (!permissionsNeeded.isEmpty()) {
+            ActivityCompat.requestPermissions(this, permissionsNeeded.toArray(new String[0]), 100);
+        }
+
+        // برای اندروید 11+ درخواست دسترسی به پوشه عمومی
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
+            requestAllFilesAccess();
+        }
+    }
+
+    private void requestAllFilesAccess() {
+        new AlertDialog.Builder(this)
+                .setTitle("📁 دسترسی به پوشه عمومی")
+                .setMessage("برای اینکه فایل‌های شما در پوشه Documents/Hamsepar ذخیره شوند و بتوانید با فایل منیجر گوشی آنها را ببینید، نیاز به دسترسی داریم.\n\n"
+                        + "✅ فقط به پوشه همسپار دسترسی خواهیم داشت\n"
+                        + "✅ فایل‌های شخصی شما دستکاری نمی‌شوند\n"
+                        + "✅ شما همیشه می‌توانید این دسترسی را لغو کنید")
+                .setPositiveButton("🗂️ اجازه دسترسی", (dialog, which) -> {
+                    try {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                        intent.setData(Uri.parse("package:" + getPackageName()));
+                        startActivityForResult(intent, 101);
+                    } catch (Exception e) {
+                        Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
+                        startActivityForResult(intent, 101);
+                    }
+                })
+                .setNegativeButton("بعداً", null)
+                .show();
+    }
+
+    @Override
+    public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults);
+        if (requestCode == 100) {
+            checkPermissionsResult();
+        }
+    }
+
+    @Override
+    protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
+        super.onActivityResult(requestCode, resultCode, data);
+        if (requestCode == 101) {
+            checkPermissionsResult();
+        }
+    }
+
+    private void checkPermissionsResult() {
+        boolean allGranted = true;
+
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
+            allGranted = false;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
+            allGranted = false;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
+            allGranted = false;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            allGranted = false;
+        }
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
+            allGranted = false;
+        }
+
+        boolean hasPublicAccess = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hasPublicAccess = Environment.isExternalStorageManager();
+            if (!hasPublicAccess) allGranted = false;
+        }
+
+        if (allGranted) {
+            hasRequiredPermissions = true;
+            btnStartStop.setEnabled(true);
+            btnStartStop.setAlpha(1f);
+            btnRequestPermissions.setVisibility(View.GONE);
+            Toast.makeText(this, "✅ همه دسترسی‌ها فعال شد. حالا می‌توانید سرور را روشن کنید.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "⚠️ برخی دسترسی‌ها داده نشده. برای روشن کردن سرور به همه دسترسی‌ها نیاز داریم.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+
     // ==================== کلاس سرور ====================
     private class FileServer extends NanoHTTPD {
         private final File rootDir;
@@ -998,5 +1174,6 @@ public class MainActivity extends AppCompatActivity {
                 return null;
             }
         }
+
     }
 }

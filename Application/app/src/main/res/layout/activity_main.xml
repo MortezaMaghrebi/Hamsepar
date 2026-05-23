@@ -121,6 +121,18 @@
                         android:textColor="#EF4444"
                         android:textSize="24sp"
                         android:textStyle="bold" />
+                    <Button
+                        android:id="@+id/btnRequestPermissions"
+                        android:layout_width="match_parent"
+                        android:layout_height="52dp"
+                        android:layout_marginBottom="12dp"
+                        android:backgroundTint="#F59E0B"
+                        android:text="🔐 فعال کردن دسترسی‌های لازم"
+                        android:textColor="#FFFFFF"
+                        android:textSize="14sp"
+                        android:textStyle="bold"
+                        app:cornerRadius="30dp" />
+
 
                     <Button
                         android:id="@+id/btnStartStop"
