@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    android:background="#F8FAFC"
+    android:orientation="vertical"
+    android:padding="12dp"
+    android:layout_marginBottom="8dp">
+
+    <TextView
+        android:id="@+id/txtClientName"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:text="کاربر"
+        android:textColor="#4F46E5"
+        android:textSize="14sp"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/txtClientIp"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:text="192.168.1.1"
+        android:textColor="#64748B"
+        android:textSize="11sp" />
+
+    <TextView
+        android:id="@+id/txtClientOs"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="4dp"
+        android:background="#D1FAE5"
+        android:padding="2dp"
+        android:paddingStart="8dp"
+        android:paddingEnd="8dp"
+        android:text="Android"
+        android:textColor="#10B981"
+        android:textSize="10sp" />
+</LinearLayout>

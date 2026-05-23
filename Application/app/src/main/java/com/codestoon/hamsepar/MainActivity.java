@@ -63,7 +63,7 @@ public class MainActivity extends AppCompatActivity {
     private static final String PREF_RATING_DIALOG_SHOWN = "rating_dialog_shown";
     private static final String PREF_RATING_DIALOG_LAST_TIME = "rating_dialog_last_time";
     private static final int PROMPT_COMMENT_THRESHOLD = 2; // بعد از 2 آپلود موفق
-
+    public static String CURRENT_SERVER_IP = "";
     private static final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 
     private static class ClientInfo {
@@ -320,6 +320,18 @@ public class MainActivity extends AppCompatActivity {
 
     private void openBrowser() {
         if (webServer != null && currentIp != null) {
+            Intent intent = new Intent(MainActivity.this, ServerDashboardActivity.class);
+            startActivity(intent);
+        } else if (currentIp != null) {
+            Intent intent = new Intent(MainActivity.this, ServerDashboardActivity.class);
+            startActivity(intent);
+            Toast.makeText(this, "سرور خاموش است. ابتدا سرور را روشن کنید.", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "ابتدا سرور را روشن کنید.", Toast.LENGTH_SHORT).show();
+        }
+    }
+    private void openBrowser2() {
+        if (webServer != null && currentIp != null) {
             String url = "http://" + currentIp + ":" + PORT;
             Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
             startActivity(intent);
@@ -422,6 +434,7 @@ public class MainActivity extends AppCompatActivity {
 
     private void startServerWithIp(String ip) {
         currentIp = ip;
+        CURRENT_SERVER_IP = ip;  // <-- اضافه کنید
         txtLocalIp.setText(currentIp);
         String url = "http://" + currentIp + ":" + PORT;
         txtServerUrl.setText(url);
@@ -436,11 +449,12 @@ public class MainActivity extends AppCompatActivity {
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
             updateServerUi(true);
 
-            mainHandler.postDelayed(() -> {
-                if (webServer != null && currentIp != null) {
-                    startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
-                }
-            }, 500);
+            //mainHandler.postDelayed(() -> {
+            //    if (webServer != null && currentIp != null) {
+            //        startActivity(new Intent(Intent.ACTION_VIEW, Uri.parse(url)));
+            //    }
+            //}, 500);
+            openBrowser();
 
             mainHandler.postDelayed(clientUpdater, 2000);
         } catch (IOException e) {

@@ -90,6 +90,8 @@ dependencies {
     implementation 'com.google.zxing:core:3.5.1'
     implementation 'com.journeyapps:zxing-android-embedded:4.3.0'
     implementation 'org.nanohttpd:nanohttpd:2.3.1'
+    implementation 'com.squareup.okhttp3:okhttp:4.12.0'
+
     //adivery
     //implementation 'com.adivery:sdk:4.8.3'
     //implementation 'org.jetbrains.kotlin:kotlin-stdlib:1.5.10'
@@ -99,6 +101,7 @@ dependencies {
 
 // وابستگی‌های خاص هر flavor
 dependencies {
+    implementation libs.swiperefreshlayout
     myketImplementation 'com.github.myketstore:myket-billing-client:1.6'
     bazaarImplementation "com.github.cafebazaar.Poolakey:poolakey:2.2.0"
 }
