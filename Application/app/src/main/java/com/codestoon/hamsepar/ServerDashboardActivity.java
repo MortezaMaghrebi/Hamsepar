@@ -82,20 +82,19 @@ public class ServerDashboardActivity extends AppCompatActivity {
     private ImageView imgQrCode;
     private Button btnCopyUrl, btnDeleteAll, btnOpenFolder ;
     private RecyclerView  recyclerClients;
-    private LinearLayout layoutFilesContainer;
+
 
     // Adapters
+    private LinearLayout layoutFilesContainer;
     private FileListAdapter fileAdapter;
     private ClientListAdapter clientAdapter;
-    private RecyclerView recyclerFiles;
+    //private RecyclerView recyclerFiles;
 
     // Data
     private List<FileItem> fileList = new ArrayList<>();
     private List<ClientItem> clientList = new ArrayList<>();
     private String currentIp;
     private boolean isPremium = false;
-    private boolean deleteProtection = false;
-    private String deletePassword = "";
     private String userName;
 
     // HTTP Client
@@ -148,32 +147,37 @@ public class ServerDashboardActivity extends AppCompatActivity {
         btnCopyUrl = findViewById(R.id.btnCopyUrl);
         btnDeleteAll = findViewById(R.id.btnDeleteAll);
         btnOpenFolder = findViewById(R.id.btnOpenFolder);
-        //layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
         recyclerClients = findViewById(R.id.recyclerClients);
-        recyclerFiles = findViewById(R.id.recyclerFiles);
-        recyclerFiles.setLayoutManager(new LinearLayoutManager(this));
-
+        layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
         recyclerClients.setLayoutManager(new LinearLayoutManager(this));
     }
 
     private void loadUserInfo() {
         SharedPreferences prefs = getSharedPreferences("user_info", MODE_PRIVATE);
         userName = prefs.getString("user_name", getUserUniqueName());
-        txtUserInfo.setText(userName);
+        txtUserInfo.setText(userName + " 📱");
     }
 
     private String getUserUniqueName() {
-        String[] persianNames = {"آذرگون", "بارانک", "پونه‌سا", "تیسفون", "جادوک", "چکاد", "خاوران", "دماوند"};
-        String randomName = persianNames[(int)(Math.random() * persianNames.length)];
         SharedPreferences prefs = getSharedPreferences("user_info", MODE_PRIVATE);
-        prefs.edit().putString("user_name", randomName).apply();
-        return randomName;
+        String savedName = prefs.getString("user_name", null);
+
+        if (savedName != null) {
+            return savedName;
+        }
+
+        String[] persianNames = {"آذرگون", "بارانک", "پونه‌سا", "تیسفون", "جادوک", "چکاد", "خاوران", "دماوند"};
+        String[] emojis = {"⚡", "🔥", "💎", "🚀", "⭐", "🌙", "🎯", "💫"};
+        String randomName = persianNames[(int)(Math.random() * persianNames.length)];
+        String randomEmoji = emojis[(int)(Math.random() * emojis.length)];
+        String finalName = randomName + " " + randomEmoji;
+
+        prefs.edit().putString("user_name", finalName).apply();
+        return finalName;
     }
 
     private void loadSettings() {
         SharedPreferences securityPrefs = getSharedPreferences("app_security", MODE_PRIVATE);
-        deleteProtection = securityPrefs.getBoolean("protect_delete", false);
-        deletePassword = securityPrefs.getString("delete_password", "1234");
 
         SharedPreferences billingPrefs = getSharedPreferences("PREFS_SILENT_SOUND", MODE_PRIVATE);
         isPremium = billingPrefs.getBoolean("premium_activated", false);
@@ -219,7 +223,6 @@ public class ServerDashboardActivity extends AppCompatActivity {
             }
         });
 
-        recyclerFiles.setAdapter(fileAdapter);  // این خط مهم است
         clientAdapter = new ClientListAdapter();
         recyclerClients.setAdapter(clientAdapter);
     }
@@ -392,7 +395,15 @@ public class ServerDashboardActivity extends AppCompatActivity {
     }
 
     private void fetchFilesAndClients() {
-        String url = "http://" + currentIp + ":8080/api/files?_=" + System.currentTimeMillis();
+        // دریافت نام کاربر از SharedPreferences
+        SharedPreferences prefs = getSharedPreferences("user_info", MODE_PRIVATE);
+        String userName = prefs.getString("user_name", getUserUniqueName());
+        String userOS = "Android"; // یا هر مقدار دیگری
+
+        // اضافه کردن clientName و clientOS به URL
+        String url = "http://" + currentIp + ":8080/api/files?clientName=" + Uri.encode(userName)
+                + "&clientOS=" + Uri.encode(userOS) + "&_=" + System.currentTimeMillis();
+
         Request request = new Request.Builder().url(url).get().build();
 
         new Thread(() -> {
@@ -432,12 +443,23 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 ));
             }
 
+            // اضافه کردن کاربر خودت به لیست (اختیاری)
+            boolean isSelfInList = false;
+            for (ClientItem client : clientList) {
+                if (client.getName().equals(userName)) {
+                    isSelfInList = true;
+                    break;
+                }
+            }
+            if (!isSelfInList && currentIp != null) {
+                clientList.add(0, new ClientItem(userName + " (خودم)", currentIp, "Android"));
+            }
+
             int totalFiles = obj.getInt("totalFiles");
             long totalSize = obj.getLong("totalSize");
 
             runOnUiThread(() -> {
-                // استفاده از Adapter به جای displayFiles
-                fileAdapter.setFiles(new ArrayList<>(fileList));
+                displayFiles(new ArrayList<>(fileList));
                 clientAdapter.setClients(new ArrayList<>(clientList));
                 txtClientsCount.setText(String.valueOf(clientList.size()));
                 txtStats.setText(String.format(Locale.getDefault(), "📊 %d فایل | حجم کل: %s",
@@ -448,6 +470,9 @@ public class ServerDashboardActivity extends AppCompatActivity {
             e.printStackTrace();
         }
     }
+
+
+
     String fileName;
     long totalRead;
     private void uploadFile(Uri uri) {
@@ -666,7 +691,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 TextView txtIcon = itemView.findViewById(R.id.txtFileIcon);
                 TextView txtName = itemView.findViewById(R.id.txtFileName);
                 TextView txtSize = itemView.findViewById(R.id.txtFileSize);
-                ImageView imgDelete = itemView.findViewById(R.id.imgDelete);  // تغییر به ImageView
+                ImageView imgDelete = itemView.findViewById(R.id.imgDelete);
 
                 txtIcon.setText(getFileIcon(file.getName()));
                 txtName.setText(file.getName());
@@ -684,6 +709,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
             }
         });
     }
+
+
     // متد جدید برای باز کردن/اجرای فایل
     private void openFile(String fileName) {
         File sharedFolder = new File(getExternalFilesDir(null), "SharedFiles");

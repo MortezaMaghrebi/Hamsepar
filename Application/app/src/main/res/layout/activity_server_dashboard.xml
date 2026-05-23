@@ -4,6 +4,7 @@
     android:id="@+id/swipeRefresh"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
+    android:layoutDirection="rtl"
     android:background="#F5F7FA">
 
     <ScrollView
@@ -269,16 +270,12 @@
                         android:textColor="#1F2937"
                         android:textSize="16sp"
                         android:textStyle="bold" />
-                    <RelativeLayout
+                    <LinearLayout
+                        android:id="@+id/layoutFilesContainer"
                         android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-                        <androidx.recyclerview.widget.RecyclerView
-                            android:id="@+id/recyclerFiles"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:layout_marginTop="12dp"
-                            android:nestedScrollingEnabled="true" />
-                    </RelativeLayout>
+                        android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
+                        android:orientation="vertical" />
 
 
                     <LinearLayout
