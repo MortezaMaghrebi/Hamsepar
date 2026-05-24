@@ -3,15 +3,19 @@ package com.codestoon.hamsepar;
 import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
-import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
+import android.text.Editable;
+import android.text.TextWatcher;
 import android.view.View;
-import android.widget.Button;
+import android.widget.EditText;
+import android.widget.FrameLayout;
 import android.widget.ImageView;
+import android.widget.LinearLayout;
 import android.widget.ProgressBar;
+import android.widget.TextView;
 import android.widget.Toast;
 
 import androidx.appcompat.app.AlertDialog;
@@ -19,27 +23,39 @@ import androidx.appcompat.app.AppCompatActivity;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
 
+import com.google.android.material.button.MaterialButton;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
+
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
-import java.util.Collections;
-import java.util.Comparator;
 import java.util.List;
 
-public class AppExtractorActivity extends AppCompatActivity implements AppListAdapter.OnAppSelectionListener {
+public class AppExtractorActivity extends AppCompatActivity {
 
-    private ImageView ivBack;
     private RecyclerView recyclerApps;
-    private Button btnSelectAll, btnDeselectAll, btnExtract;
+    private MaterialButton btnExtract;
+    private EditText edtSearch;
+    private TextView  txtSelectedCount, btnSelectAll, btnDeselectAll;
+    private FrameLayout loadingLayout;
+    private LinearLayout progressLayout;
     private ProgressBar progressBar;
+    private TextView txtProgress;
+    private TabLayout tabLayout;
+    private TextView toolbar;
 
+    private ImageView btnClearSearch;
     private AppListAdapter adapter;
     private PackageManager packageManager;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private List<AppItem> allApps = new ArrayList<>();
+    private List<AppItem> userApps = new ArrayList<>();
+    private List<AppItem> systemApps = new ArrayList<>();
+    private int currentTab = 0; // 0 = کاربر, 1 = سیستمی
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -52,77 +68,148 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
     }
 
     private void initViews() {
-        ivBack = findViewById(R.id.ivBack);
+        // Toolbar
+        androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
+        setSupportActionBar(toolbar);
+        getSupportActionBar().setDisplayHomeAsUpEnabled(true);
+        getSupportActionBar().setHomeAsUpIndicator(R.drawable.ic_back);
+
         recyclerApps = findViewById(R.id.recyclerApps);
+        btnExtract = findViewById(R.id.btnExtract);
+        edtSearch = findViewById(R.id.edtSearch);
+        btnClearSearch = findViewById(R.id.btnClearSearch);
+        txtSelectedCount = findViewById(R.id.txtSelectedCount);
         btnSelectAll = findViewById(R.id.btnSelectAll);
         btnDeselectAll = findViewById(R.id.btnDeselectAll);
-        btnExtract = findViewById(R.id.btnExtract);
+        loadingLayout = findViewById(R.id.loadingLayout);
+        progressLayout = findViewById(R.id.progressLayout);
         progressBar = findViewById(R.id.progressBar);
+        txtProgress = findViewById(R.id.txtProgress);
+        tabLayout = findViewById(R.id.tabLayout);
 
         recyclerApps.setLayoutManager(new LinearLayoutManager(this));
         adapter = new AppListAdapter();
-        adapter.setListener(this);
+        adapter.setOnSelectionChangedListener(selectedCount -> updateSelectionUI());
         recyclerApps.setAdapter(adapter);
 
         packageManager = getPackageManager();
+
+        updateSelectionUI();
     }
 
     private void setupListeners() {
-        ivBack.setOnClickListener(v -> finish());
-
         btnSelectAll.setOnClickListener(v -> adapter.selectAll());
         btnDeselectAll.setOnClickListener(v -> adapter.deselectAll());
         btnExtract.setOnClickListener(v -> extractSelectedApps());
+
+        edtSearch.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence s, int start, int count, int after) {}
+            @Override
+            public void onTextChanged(CharSequence s, int start, int before, int count) {
+                String query = s.toString();
+                adapter.setSearchQuery(query);
+                btnClearSearch.setVisibility(query.isEmpty() ? View.GONE : View.VISIBLE);
+            }
+            @Override
+            public void afterTextChanged(Editable s) {}
+        });
+
+        btnClearSearch.setOnClickListener(v -> {
+            edtSearch.setText("");
+            btnClearSearch.setVisibility(View.GONE);
+        });
+
+        tabLayout.addOnTabSelectedListener(new TabLayout.OnTabSelectedListener() {
+            @Override
+            public void onTabSelected(TabLayout.Tab tab) {
+                currentTab = tab.getPosition();
+                updateDisplayedApps();
+            }
+            @Override
+            public void onTabUnselected(TabLayout.Tab tab) {}
+            @Override
+            public void onTabReselected(TabLayout.Tab tab) {}
+        });
+    }
+
+    private void updateSelectionUI() {
+        int count = adapter.getSelectedCount();
+        txtSelectedCount.setText(count + " انتخاب شده");
+        btnExtract.setEnabled(count > 0);
+        if (count > 0) {
+            btnExtract.setText("📦 استخراج " + count + " فایل APK");
+        } else {
+            btnExtract.setText("📦 استخراج فایل APK");
+        }
+    }
+
+    private void updateDisplayedApps() {
+        String query = edtSearch.getText().toString();
+        if (currentTab == 0) {
+            adapter.setAppList(userApps, query);
+        } else {
+            adapter.setAppList(systemApps, query);
+        }
+        updateSelectionUI();
     }
 
     private void loadInstalledApps() {
-        progressBar.setVisibility(View.VISIBLE);
-        progressBar.setIndeterminate(true);
+        loadingLayout.setVisibility(View.VISIBLE);
+        recyclerApps.setVisibility(View.GONE);
 
         new Thread(() -> {
-            List<AppItem> appList = new ArrayList<>();
+            userApps.clear();
+            systemApps.clear();
 
             try {
-                // روش جایگزین: استفاده از GET_ACTIVITIES
                 List<PackageInfo> packages = packageManager.getInstalledPackages(PackageManager.GET_ACTIVITIES | PackageManager.GET_META_DATA);
 
                 for (PackageInfo packageInfo : packages) {
-                    // فیلتر کردن برنامه‌های سیستمی (اختیاری - حذف کنید تا همه برنامه‌ها را ببیند)
-                    if ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
-                        // اگر می‌خواهید برنامه‌های سیستمی را هم نشان دهد، این خط را کامنت کنید
-                        // continue;
-                    }
+                    ApplicationInfo appInfo = packageInfo.applicationInfo;
 
-                    String appName = packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
-                    String packageName = packageInfo.packageName;
-                    String sourceDir = packageInfo.applicationInfo.sourceDir;
+                    String appName = packageManager.getApplicationLabel(appInfo).toString();
+                    String packageName = appInfo.packageName;
+                    String sourceDir = appInfo.sourceDir;
+                    boolean isSystemApp = (appInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0;
 
-                    // بررسی دسترسی به فایل APK
                     File apkFile = new File(sourceDir);
                     if (apkFile.exists()) {
                         AppItem app = new AppItem(appName, packageName, sourceDir,
-                                packageInfo.applicationInfo.loadIcon(packageManager));
-                        appList.add(app);
+                                appInfo.loadIcon(packageManager), isSystemApp);
+
+                        if (isSystemApp) {
+                            systemApps.add(app);
+                        } else {
+                            userApps.add(app);
+                        }
                     }
                 }
 
                 // مرتب‌سازی
-                appList.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
+                userApps.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
+                systemApps.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
 
             } catch (Exception e) {
                 e.printStackTrace();
             }
 
-            final List<AppItem> finalList = appList;
             mainHandler.post(() -> {
-                adapter.setAppList(finalList);
-                progressBar.setVisibility(View.GONE);
-                Toast.makeText(this, finalList.size() + " برنامه یافت شد", Toast.LENGTH_SHORT).show();
+                loadingLayout.setVisibility(View.GONE);
+                recyclerApps.setVisibility(View.VISIBLE);
+                updateDisplayedApps();
+
+                // تنظیم متن تب‌ها با تعداد
+                TabLayout.Tab userTab = tabLayout.getTabAt(0);
+                TabLayout.Tab systemTab = tabLayout.getTabAt(1);
+                if (userTab != null) userTab.setText("📱 کاربر (" + userApps.size() + ")");
+                if (systemTab != null) systemTab.setText("⚙️ سیستمی (" + systemApps.size() + ")");
+
+                Toast.makeText(this, userApps.size() + " برنامه کاربر، " + systemApps.size() + " برنامه سیستمی", Toast.LENGTH_SHORT).show();
             });
         }).start();
     }
 
-    int i;
     private void extractSelectedApps() {
         List<AppItem> selectedApps = adapter.getSelectedApps();
 
@@ -136,23 +223,26 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
             destFolder.mkdirs();
         }
 
-        progressBar.setVisibility(View.VISIBLE);
-        progressBar.setMax(100);
-        progressBar.setIndeterminate(false);
+        progressLayout.setVisibility(View.VISIBLE);
+        progressBar.setMax(selectedApps.size());
+        progressBar.setProgress(0);
         btnExtract.setEnabled(false);
+        btnSelectAll.setEnabled(false);
+        btnDeselectAll.setEnabled(false);
+        edtSearch.setEnabled(false);
 
         new Thread(() -> {
             int successCount = 0;
             int failCount = 0;
             List<String> failedApps = new ArrayList<>();
 
-            for (i = 0; i < selectedApps.size(); i++) {
+            for (int i = 0; i < selectedApps.size(); i++) {
                 AppItem app = selectedApps.get(i);
-                final int progress = (int) ((i + 1) * 100.0 / selectedApps.size());
+                final int current = i + 1;
 
                 mainHandler.post(() -> {
-                    progressBar.setProgress(progress);
-                    btnExtract.setText("در حال استخراج: " + (i + 1) + "/" + selectedApps.size());
+                    progressBar.setProgress(current);
+                    txtProgress.setText("در حال استخراج: " + current + " از " + selectedApps.size());
                 });
 
                 boolean success = copyApkFile(app, destFolder);
@@ -169,14 +259,16 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
             final List<String> finalFailedApps = failedApps;
 
             mainHandler.post(() -> {
-                progressBar.setVisibility(View.GONE);
+                progressLayout.setVisibility(View.GONE);
                 btnExtract.setEnabled(true);
-                btnExtract.setText("📦 استخراج APK (" + selectedApps.size() + ")");
+                btnSelectAll.setEnabled(true);
+                btnDeselectAll.setEnabled(true);
+                edtSearch.setEnabled(true);
+                btnExtract.setText("📦 استخراج APK");
 
                 String message = "✅ " + finalSuccessCount + " برنامه با موفقیت استخراج شد.\n📁 مسیر: Documents/Hamsepar";
                 if (finalFailCount > 0) {
-                    message += "\n\n❌ خطا در استخراج " + finalFailCount + " برنامه:\n" + String.join("\n", finalFailedApps);
-                    message += "\n\n⚠️ نکته: برخی برنامه‌های سیستمی یا محافظت شده قابل استخراج نیستند.";
+                    message += "\n\n❌ خطا در " + finalFailCount + " برنامه:\n" + String.join("\n", finalFailedApps);
                 }
 
                 new AlertDialog.Builder(AppExtractorActivity.this)
@@ -190,33 +282,18 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
 
     private boolean copyApkFile(AppItem app, File destFolder) {
         File sourceFile = new File(app.getSourceDir());
+        if (!sourceFile.exists()) return false;
 
-        if (!sourceFile.exists()) {
-            return false;
-        }
-
-        // پاکسازی نام فایل برای استفاده در مسیر
         String safeFileName = app.getAppName()
-                .replace("/", "_")
-                .replace("\\", "_")
-                .replace(":", "_")
-                .replace("*", "_")
-                .replace("?", "_")
-                .replace("\"", "_")
-                .replace("<", "_")
-                .replace(">", "_")
-                .replace("|", "_")
-                .trim();
+                .replace("/", "_").replace("\\", "_").replace(":", "_")
+                .replace("*", "_").replace("?", "_").replace("\"", "_")
+                .replace("<", "_").replace(">", "_").replace("|", "_").trim();
 
-        // اگر نام فایل خالی شد، از package name استفاده کن
-        if (safeFileName.isEmpty()) {
-            safeFileName = app.getPackageName();
-        }
+        if (safeFileName.isEmpty()) safeFileName = app.getPackageName();
 
         String destFileName = safeFileName + "_" + app.getPackageName() + ".apk";
         File destFile = new File(destFolder, destFileName);
 
-        // اگر فایل قبلاً وجود دارد، نام جدید بساز
         int counter = 1;
         while (destFile.exists()) {
             destFileName = safeFileName + "_" + app.getPackageName() + "_" + counter + ".apk";
@@ -242,15 +319,13 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
 
     private File getSharedFilesFolder() {
         File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Hamsepar");
-        if (!folder.exists()) {
-            folder.mkdirs();
-        }
+        if (!folder.exists()) folder.mkdirs();
         return folder;
     }
 
     @Override
-    public void onSelectionChanged(int selectedCount) {
-        btnExtract.setText("📦 استخراج APK (" + selectedCount + ")");
-        btnExtract.setEnabled(selectedCount > 0);
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 }

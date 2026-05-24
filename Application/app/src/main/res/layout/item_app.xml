@@ -28,16 +28,38 @@
             android:text="نام برنامه"
             android:textColor="#1F2937"
             android:textSize="15sp"
-            android:textStyle="bold" />
+            android:textStyle="bold"
+            android:fontFamily="@font/yekan" />
 
-        <TextView
-            android:id="@+id/txtPackageName"
-            android:layout_width="wrap_content"
+        <LinearLayout
+            android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:text="com.example.app"
-            android:textColor="#6B7280"
-            android:textSize="11sp"
-            android:layout_marginTop="4dp" />
+            android:orientation="horizontal"
+            android:layout_marginTop="4dp"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/txtPackageName"
+                android:layout_width="0dp"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                android:text="com.example.app"
+                android:textColor="#6B7280"
+                android:textSize="11sp" />
+
+            <TextView
+                android:id="@+id/txtAppType"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:padding="2dp"
+                android:paddingStart="8dp"
+                android:paddingEnd="8dp"
+                android:text="کاربر"
+                android:textSize="10sp"
+                android:textColor="#10B981"
+                android:background="#D1FAE5"
+                android:layout_marginStart="8dp" />
+        </LinearLayout>
     </LinearLayout>
 
     <CheckBox
