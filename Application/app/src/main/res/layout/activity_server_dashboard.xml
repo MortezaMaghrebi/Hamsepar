@@ -191,11 +191,12 @@
                             android:visibility="gone" />
                     </LinearLayout>
 
+                    <!-- دکمه آپلود فایل معمولی -->
                     <LinearLayout
                         android:id="@+id/uploadArea"
                         android:layout_width="match_parent"
-                        android:layout_height="140dp"
-                        android:layout_marginTop="16dp"
+                        android:layout_height="100dp"
+                        android:layout_marginTop="12dp"
                         android:background="@drawable/upload_area_border"
                         android:gravity="center"
                         android:orientation="vertical"
@@ -206,27 +207,47 @@
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
                             android:text="📂"
-                            android:textSize="48sp" />
+                            android:textSize="32sp" />
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:layout_marginTop="8dp"
-                            android:text="برای به اشتراک گذاری کلیک کنید"
+                            android:layout_marginTop="4dp"
+                            android:text="برای به اشتراک گذاری فایل کلیک کنید"
                             android:fontFamily="@font/yekan"
                             android:textColor="#334155"
-                            android:textSize="14sp"
+                            android:textSize="12sp"
                             android:textStyle="bold" />
+                    </LinearLayout>
+
+                    <!-- دکمه استخراج برنامه‌ها -->
+                    <LinearLayout
+                        android:id="@+id/extractAppsArea"
+                        android:layout_width="match_parent"
+                        android:layout_height="100dp"
+                        android:background="@drawable/upload_area_border"
+                        android:gravity="center"
+                        android:orientation="vertical"
+                        android:layout_marginTop="12dp"
+                        android:clickable="true"
+                        android:focusable="true">
 
                         <TextView
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
-                            android:text="فایل خود را انتخاب کنید"
-                            android:fontFamily="@font/yekan"
-                            android:textColor="#94A3B8"
-                            android:textSize="11sp" />
-                    </LinearLayout>
+                            android:text="📱"
+                            android:textSize="32sp" />
 
+                        <TextView
+                            android:layout_width="wrap_content"
+                            android:layout_height="wrap_content"
+                            android:layout_marginTop="4dp"
+                            android:text="برای به اشتراک گذاری برنامه کلیک کنید"
+                            android:fontFamily="@font/yekan"
+                            android:textColor="#334155"
+                            android:textSize="12sp"
+                            android:textStyle="bold" />
+                    </LinearLayout>
                     <ProgressBar
                         android:id="@+id/progressBar"
                         style="?android:attr/progressBarStyleHorizontal"

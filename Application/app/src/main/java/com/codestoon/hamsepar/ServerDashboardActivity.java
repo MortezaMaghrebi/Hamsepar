@@ -78,7 +78,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
     private TextView txtServerStatus, txtServerUrl, txtServerUrlShort, txtLocalIp;
     private TextView txtUserInfo, txtStats, txtClientsCount, txtUploadProgress, txtLimitWarning;
     private TextView txtPremiumBadge;
-    private LinearLayout uploadArea;
+    private LinearLayout uploadArea,extractAppsArea ;
     private ProgressBar progressBar;
     private ImageView imgQrCode;
     private Button btnCopyUrl, btnDeleteAll, btnOpenFolder ;
@@ -151,7 +151,11 @@ public class ServerDashboardActivity extends AppCompatActivity {
         recyclerClients = findViewById(R.id.recyclerClients);
         layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
         recyclerClients.setLayoutManager(new LinearLayoutManager(this));
-    }
+        extractAppsArea = findViewById(R.id.extractAppsArea);
+        extractAppsArea.setOnClickListener(v -> {
+            Intent intent = new Intent(ServerDashboardActivity.this, AppExtractorActivity.class);
+            startActivity(intent);
+        });}
 
     private void loadUserInfo() {
         SharedPreferences prefs = getSharedPreferences("user_info", MODE_PRIVATE);

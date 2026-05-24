@@ -4,14 +4,12 @@
     <!-- مجوزهای لازم -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
-    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
-    <!-- برای اندروید 10 و پایین‌تر -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- برای اندروید 10 و پایین‌تر -->
     <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
-    <!-- برای اندروید 11+ -->
-    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" />
-    <!-- حذف دسترسی اضافی -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- برای اندروید 11+ -->
+    <uses-permission
+        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
+        tools:ignore="ScopedStorage" /> <!-- حذف دسترسی اضافی -->
     <uses-permission
         android:name="android.permission.CAMERA"
         tools:node="remove" />
@@ -26,6 +24,10 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Hamsepar"
         android:usesCleartextTraffic="true">
+        <activity
+            android:name=".AppExtractorActivity"
+            android:exported="false"
+            android:screenOrientation="portrait" />
         <activity
             android:name=".ServerDashboardActivity"
             android:exported="false" />
