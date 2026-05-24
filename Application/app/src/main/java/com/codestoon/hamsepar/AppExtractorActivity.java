@@ -1,7 +1,9 @@
 package com.codestoon.hamsepar;
 
 import android.content.pm.ApplicationInfo;
+import android.content.pm.PackageInfo;
 import android.content.pm.PackageManager;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
@@ -23,6 +25,8 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.channels.FileChannel;
 import java.util.ArrayList;
+import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
 
 public class AppExtractorActivity extends AppCompatActivity implements AppListAdapter.OnAppSelectionListener {
@@ -35,11 +39,12 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
     private AppListAdapter adapter;
     private PackageManager packageManager;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
+    private List<AppItem> allApps = new ArrayList<>();
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
-        setContentView(R.layout.activity_app_extractor);  // نام فایل اصلاح شد
+        setContentView(R.layout.activity_app_extractor);
 
         initViews();
         setupListeners();
@@ -71,26 +76,52 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
     }
 
     private void loadInstalledApps() {
-        List<AppItem> appList = new ArrayList<>();
+        progressBar.setVisibility(View.VISIBLE);
+        progressBar.setIndeterminate(true);
 
-        List<ApplicationInfo> packages = packageManager.getInstalledApplications(PackageManager.GET_META_DATA);
+        new Thread(() -> {
+            List<AppItem> appList = new ArrayList<>();
 
-        for (ApplicationInfo appInfo : packages) {
-            String appName = packageManager.getApplicationLabel(appInfo).toString();
-            String packageName = appInfo.packageName;
-            String sourceDir = appInfo.sourceDir;
+            try {
+                // روش جایگزین: استفاده از GET_ACTIVITIES
+                List<PackageInfo> packages = packageManager.getInstalledPackages(PackageManager.GET_ACTIVITIES | PackageManager.GET_META_DATA);
 
-            if (sourceDir != null && new File(sourceDir).exists()) {
-                AppItem app = new AppItem(appName, packageName, sourceDir, appInfo.loadIcon(packageManager));
-                appList.add(app);
+                for (PackageInfo packageInfo : packages) {
+                    // فیلتر کردن برنامه‌های سیستمی (اختیاری - حذف کنید تا همه برنامه‌ها را ببیند)
+                    if ((packageInfo.applicationInfo.flags & ApplicationInfo.FLAG_SYSTEM) != 0) {
+                        // اگر می‌خواهید برنامه‌های سیستمی را هم نشان دهد، این خط را کامنت کنید
+                        // continue;
+                    }
+
+                    String appName = packageManager.getApplicationLabel(packageInfo.applicationInfo).toString();
+                    String packageName = packageInfo.packageName;
+                    String sourceDir = packageInfo.applicationInfo.sourceDir;
+
+                    // بررسی دسترسی به فایل APK
+                    File apkFile = new File(sourceDir);
+                    if (apkFile.exists()) {
+                        AppItem app = new AppItem(appName, packageName, sourceDir,
+                                packageInfo.applicationInfo.loadIcon(packageManager));
+                        appList.add(app);
+                    }
+                }
+
+                // مرتب‌سازی
+                appList.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
+
+            } catch (Exception e) {
+                e.printStackTrace();
             }
-        }
 
-        // مرتب‌سازی بر اساس نام
-        appList.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
-
-        adapter.setAppList(appList);
+            final List<AppItem> finalList = appList;
+            mainHandler.post(() -> {
+                adapter.setAppList(finalList);
+                progressBar.setVisibility(View.GONE);
+                Toast.makeText(this, finalList.size() + " برنامه یافت شد", Toast.LENGTH_SHORT).show();
+            });
+        }).start();
     }
+
     int i;
     private void extractSelectedApps() {
         List<AppItem> selectedApps = adapter.getSelectedApps();
@@ -107,6 +138,7 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
 
         progressBar.setVisibility(View.VISIBLE);
         progressBar.setMax(100);
+        progressBar.setIndeterminate(false);
         btnExtract.setEnabled(false);
 
         new Thread(() -> {
@@ -114,7 +146,7 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
             int failCount = 0;
             List<String> failedApps = new ArrayList<>();
 
-            for ( i = 0; i < selectedApps.size(); i++) {
+            for (i = 0; i < selectedApps.size(); i++) {
                 AppItem app = selectedApps.get(i);
                 final int progress = (int) ((i + 1) * 100.0 / selectedApps.size());
 
@@ -144,9 +176,10 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
                 String message = "✅ " + finalSuccessCount + " برنامه با موفقیت استخراج شد.\n📁 مسیر: Documents/Hamsepar";
                 if (finalFailCount > 0) {
                     message += "\n\n❌ خطا در استخراج " + finalFailCount + " برنامه:\n" + String.join("\n", finalFailedApps);
+                    message += "\n\n⚠️ نکته: برخی برنامه‌های سیستمی یا محافظت شده قابل استخراج نیستند.";
                 }
 
-                new AlertDialog.Builder(this)
+                new AlertDialog.Builder(AppExtractorActivity.this)
                         .setTitle("نتیجه استخراج")
                         .setMessage(message)
                         .setPositiveButton("باشه", null)
@@ -162,6 +195,7 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
             return false;
         }
 
+        // پاکسازی نام فایل برای استفاده در مسیر
         String safeFileName = app.getAppName()
                 .replace("/", "_")
                 .replace("\\", "_")
@@ -174,9 +208,15 @@ public class AppExtractorActivity extends AppCompatActivity implements AppListAd
                 .replace("|", "_")
                 .trim();
 
+        // اگر نام فایل خالی شد، از package name استفاده کن
+        if (safeFileName.isEmpty()) {
+            safeFileName = app.getPackageName();
+        }
+
         String destFileName = safeFileName + "_" + app.getPackageName() + ".apk";
         File destFile = new File(destFolder, destFileName);
 
+        // اگر فایل قبلاً وجود دارد، نام جدید بساز
         int counter = 1;
         while (destFile.exists()) {
             destFileName = safeFileName + "_" + app.getPackageName() + "_" + counter + ".apk";

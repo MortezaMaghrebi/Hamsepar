@@ -10,6 +10,9 @@
     <uses-permission
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" /> <!-- حذف دسترسی اضافی -->
+    <!-- برای خواندن اطلاعات برنامه‌ها -->
+    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" />
     <uses-permission
         android:name="android.permission.CAMERA"
         tools:node="remove" />
