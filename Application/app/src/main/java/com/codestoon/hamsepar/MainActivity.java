@@ -132,6 +132,7 @@ public class MainActivity extends AppCompatActivity {
 
         btnStartStop.setEnabled(false);
         btnStartStop.setAlpha(0.5f);
+        checkPermissionsOnResume();
 
         btnRequestPermissions.setOnClickListener(v -> {
             checkAndRequestPermissionsWithExplanation();
@@ -871,11 +872,47 @@ public class MainActivity extends AppCompatActivity {
             btnRequestPermissions.setVisibility(View.GONE);
             Toast.makeText(this, "✅ همه دسترسی‌ها فعال شد. حالا می‌توانید سرور را روشن کنید.", Toast.LENGTH_LONG).show();
         } else {
+            hasRequiredPermissions = false;
+            btnStartStop.setEnabled(false);
+            btnStartStop.setAlpha(0.5f);
+            btnRequestPermissions.setVisibility(View.VISIBLE);
             Toast.makeText(this, "⚠️ برخی دسترسی‌ها داده نشده. برای روشن کردن سرور به همه دسترسی‌ها نیاز داریم.", Toast.LENGTH_LONG).show();
         }
     }
 
+    @Override
+    protected void onResume() {
+        super.onResume();
+        // هر بار که برنامه به foreground می‌آید، وضعیت دسترسی‌ها را بررسی کن
+        checkPermissionsOnResume();
+    }
 
+    private void checkPermissionsOnResume() {
+        boolean hasInternet = ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
+        boolean hasWifiState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED;
+        boolean hasNetworkState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED;
+        boolean hasWriteStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+        boolean hasReadStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+
+        boolean hasPublicAccess = true;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            hasPublicAccess = Environment.isExternalStorageManager();
+        }
+
+        boolean allGranted = hasInternet && hasWifiState && hasNetworkState && hasWriteStorage && hasReadStorage && hasPublicAccess;
+
+        if (allGranted) {
+            hasRequiredPermissions = true;
+            btnStartStop.setEnabled(true);
+            btnStartStop.setAlpha(1f);
+            btnRequestPermissions.setVisibility(View.GONE);
+        } else {
+            hasRequiredPermissions = false;
+            btnStartStop.setEnabled(false);
+            btnStartStop.setAlpha(0.5f);
+            btnRequestPermissions.setVisibility(View.VISIBLE);
+        }
+    }
     // ==================== کلاس سرور ====================
     private class FileServer extends NanoHTTPD {
         private final File rootDir;
