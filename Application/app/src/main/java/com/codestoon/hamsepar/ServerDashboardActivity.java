@@ -730,11 +730,9 @@ public class ServerDashboardActivity extends AppCompatActivity {
             return;
         }
 
-        // گرفتن Uri فایل
-        Uri fileUri = androidx.core.content.FileProvider.getUriForFile(this,
+        Uri fileUri = FileProvider.getUriForFile(this,
                 getPackageName() + ".fileprovider", file);
 
-        // تشخیص MIME type
         String mimeType = getMimeType(fileName);
 
         Intent intent = new Intent(Intent.ACTION_VIEW);
@@ -742,13 +740,47 @@ public class ServerDashboardActivity extends AppCompatActivity {
         intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
         intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
 
-        try {
-            startActivity(intent);
-        } catch (Exception e) {
-            e.printStackTrace();
-            // اگر برنامه‌ای برای باز کردن فایل وجود نداشت
-            Toast.makeText(this, "برنامه‌ای برای باز کردن این فایل یافت نشد", Toast.LENGTH_LONG).show();
+        // برای فایل‌های APK، درخواست مجوز نصب از منابع ناشناس
+        if (fileName.endsWith(".apk")) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                // اندروید 8 به بالا نیاز به مجوز نصب از منابع ناشناس دارد
+                if (getPackageManager().canRequestPackageInstalls()) {
+                    try {
+                        startActivity(intent);
+                    } catch (Exception e) {
+                        showInstallPermissionDialog(fileUri);
+                    }
+                } else {
+                    showInstallPermissionDialog(fileUri);
+                }
+            } else {
+                try {
+                    startActivity(intent);
+                } catch (Exception e) {
+                    Toast.makeText(this, "خطا در باز کردن فایل APK", Toast.LENGTH_SHORT).show();
+                }
+            }
+        } else {
+            try {
+                startActivity(intent);
+            } catch (Exception e) {
+                e.printStackTrace();
+                Toast.makeText(this, "برنامه‌ای برای باز کردن این فایل یافت نشد", Toast.LENGTH_LONG).show();
+            }
         }
+    }
+
+    private void showInstallPermissionDialog(Uri apkUri) {
+        new AlertDialog.Builder(this)
+                .setTitle("📱 نصب برنامه")
+                .setMessage("برای نصب این برنامه، نیاز به فعال کردن «نصب از منابع ناشناس» دارید.\n\nآیا می‌خواهید به تنظیمات بروید؟")
+                .setPositiveButton("رفتن به تنظیمات", (dialog, which) -> {
+                    Intent intent = new Intent(Settings.ACTION_MANAGE_UNKNOWN_APP_SOURCES);
+                    intent.setData(Uri.parse("package:" + getPackageName()));
+                    startActivity(intent);
+                })
+                .setNegativeButton("بعداً", null)
+                .show();
     }
 
     // متد کمکی برای تشخیص MIME type

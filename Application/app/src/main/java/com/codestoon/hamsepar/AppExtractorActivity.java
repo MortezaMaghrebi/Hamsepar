@@ -284,19 +284,17 @@ public class AppExtractorActivity extends AppCompatActivity {
         File sourceFile = new File(app.getSourceDir());
         if (!sourceFile.exists()) return false;
 
-        String safeFileName = app.getAppName()
-                .replace("/", "_").replace("\\", "_").replace(":", "_")
-                .replace("*", "_").replace("?", "_").replace("\"", "_")
-                .replace("<", "_").replace(">", "_").replace("|", "_").trim();
+        // گرفتن نام کوتاه از package name
+        String packageName = app.getPackageName();
+        String shortName = getShortAppName(packageName);
 
-        if (safeFileName.isEmpty()) safeFileName = app.getPackageName();
-
-        String destFileName = safeFileName + "_" + app.getPackageName() + ".apk";
+        // نام فایل: فقط نام کوتاه برنامه
+        String destFileName = shortName + ".apk";
         File destFile = new File(destFolder, destFileName);
 
         int counter = 1;
         while (destFile.exists()) {
-            destFileName = safeFileName + "_" + app.getPackageName() + "_" + counter + ".apk";
+            destFileName = shortName + "_" + counter + ".apk";
             destFile = new File(destFolder, destFileName);
             counter++;
         }
@@ -308,6 +306,27 @@ public class AppExtractorActivity extends AppCompatActivity {
             e.printStackTrace();
             return false;
         }
+    }
+
+    private String getShortAppName(String packageName) {
+        // استخراج نام کوتاه از package name
+        // com.whatsapp -> whatsapp
+        // com.instagram.android -> instagram
+        // ir.market.android -> market
+        // com.google.android.youtube -> youtube
+
+        String[] parts = packageName.split("\\.");
+        if (parts.length >= 2) {
+            String lastPart = parts[parts.length - 1];
+            // اگر آخرین قسمت "android" یا "app" بود، یکی مانده به آخر را بگیر
+            if (lastPart.equalsIgnoreCase("android") || lastPart.equalsIgnoreCase("app")) {
+                if (parts.length >= 3) {
+                    return parts[parts.length - 2];
+                }
+            }
+            return lastPart;
+        }
+        return packageName;
     }
 
     private void copyFile(File source, File dest) throws IOException {
