@@ -264,7 +264,7 @@ public class AppExtractorActivity extends AppCompatActivity {
                 edtSearch.setEnabled(true);
                 btnExtract.setText("📦 استخراج APK");
 
-                String message = "✅ " + finalSuccessCount + " برنامه با موفقیت استخراج شد.\n📁 مسیر: " + destFolder.getAbsolutePath();
+                String message = "✅ " + finalSuccessCount + " برنامه با موفقیت به اشتراک گذاشته شد.\n📁 مسیر: " +"\n"+ destFolder.getAbsolutePath();
                 if (finalFailCount > 0) {
                     message += "\n\n❌ خطا در " + finalFailCount + " برنامه:\n" + String.join("\n", finalFailedApps);
                 }

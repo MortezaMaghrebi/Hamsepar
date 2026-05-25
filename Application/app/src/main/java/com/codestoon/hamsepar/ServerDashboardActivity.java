@@ -160,7 +160,14 @@ public class ServerDashboardActivity extends AppCompatActivity {
         extractAppsArea.setOnClickListener(v -> {
             Intent intent = new Intent(ServerDashboardActivity.this, AppExtractorActivity.class);
             startActivity(intent);
-        });}
+        });
+
+        if(!storageManager.isUsingPublicDirectory())
+        {
+            btnOpenFolder.setVisibility(View.INVISIBLE);
+        }
+
+    }
 
     private void loadUserInfo() {
         SharedPreferences prefs = getSharedPreferences("user_info", MODE_PRIVATE);
@@ -970,64 +977,9 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
 
     private void openFilesFolder() {
-        File sharedFolder = getSharedFilesFolder();
 
-        if (!sharedFolder.exists()) {
-            sharedFolder.mkdirs();
-            Toast.makeText(this, "پوشه فایل‌ها ایجاد شد", Toast.LENGTH_SHORT).show();
-        }
-
-        // روش اول: باز کردن با Intent.ACTION_VIEW
-        try {
-            // برای اندروید 7 به بالا نیاز به FileProvider داریم
-            Uri folderUri;
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                folderUri = FileProvider.getUriForFile(this,
-                        getPackageName() + ".fileprovider", sharedFolder);
-            } else {
-                folderUri = Uri.fromFile(sharedFolder);
-            }
-
-            Intent intent = new Intent(Intent.ACTION_VIEW);
-            intent.setDataAndType(folderUri, "resource/folder");
-            intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK);
-
-            startActivity(intent);
-
-        } catch (Exception e) {
-            e.printStackTrace();
-
-            // روش دوم: استفاده از Intent.ACTION_OPEN_DOCUMENT_TREE (برای اندروید 5+)
-            try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                    Intent intent = new Intent(Intent.ACTION_OPEN_DOCUMENT_TREE);
-                    intent.addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION);
-                    intent.addFlags(Intent.FLAG_GRANT_WRITE_URI_PERMISSION);
-
-                    // اگر اندروید 11+ بود، می‌توانیم مسیر اولیه را تنظیم کنیم
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                        Uri initialUri = FileProvider.getUriForFile(this,
-                                getPackageName() + ".fileprovider", sharedFolder);
-                        intent.putExtra(DocumentsContract.EXTRA_INITIAL_URI, initialUri);
-                    }
-
-                    startActivity(intent);
-                } else {
-                    // روش سوم: باز کردن با فایل منیجر پیش‌فرض یا نمایش پیام
-                    showFolderPathDialog(sharedFolder);
-                }
-            } catch (Exception e2) {
-                e2.printStackTrace();
-                showFolderPathDialog(sharedFolder);
-            }
-        }
-    }
-
-    private void showFolderPathDialog(File folder) {
         // نمایش مسیر پوشه به کاربر
-        String folderPath = folder.getAbsolutePath();
+        String folderPath = getSharedFilesFolder().getAbsolutePath();
 
         new AlertDialog.Builder(this)
                 .setTitle("📁 مسیر پوشه فایل‌ها")
@@ -1041,7 +993,10 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 })
                 .setNegativeButton("باشه", null)
                 .show();
+
     }
+
+
     private void updateStorageModeDisplay() {
         if (txtStorageMode != null && storageManager != null) {
             if (storageManager.isUsingPublicDirectory()) {
