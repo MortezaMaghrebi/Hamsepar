@@ -11,9 +11,9 @@
         android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
         tools:ignore="ScopedStorage" /> <!-- حذف دسترسی اضافی -->
     <!-- برای خواندن اطلاعات برنامه‌ها -->
-    <uses-permission android:name="android.permission.QUERY_ALL_PACKAGES"
-        tools:ignore="QueryAllPackagesPermission" />
-    <!-- مجوز نصب از منابع ناشناس (برای اندروید 8+) -->
+    <uses-permission
+        android:name="android.permission.QUERY_ALL_PACKAGES"
+        tools:ignore="QueryAllPackagesPermission" /> <!-- مجوز نصب از منابع ناشناس (برای اندروید 8+) -->
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES" />
     <uses-permission
         android:name="android.permission.CAMERA"
@@ -29,6 +29,9 @@
         android:supportsRtl="true"
         android:theme="@style/Theme.Hamsepar"
         android:usesCleartextTraffic="true">
+        <activity
+            android:name="VideoGuideActivity"
+            android:exported="false" />
         <activity
             android:name=".AppExtractorActivity"
             android:exported="false"

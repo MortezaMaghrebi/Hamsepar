@@ -642,8 +642,8 @@ public class MainActivity extends AppCompatActivity {
 
         builder.setNeutralButton("📖 راهنمای ویدیویی", (dialog, which) -> {
             // باز کردن یک صفحه راهنما یا ویدیو (اختیاری)
-            showVideoGuideDialog();
-            showVisualGuideDialog();
+            openVideoGuide();
+            //showVisualGuideDialog();
         });
 
         builder.setCancelable(false);
@@ -742,53 +742,12 @@ public class MainActivity extends AppCompatActivity {
         dialog.show();
     }
 
-    private void showVideoGuideDialog() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        View view = LayoutInflater.from(this).inflate(R.layout.dialog_video_guide, null);
-        builder.setView(view);
-
-        AlertDialog dialog = builder.create();
-
-        VideoView videoView = view.findViewById(R.id.videoView);
-        Button btnPlayVideo = view.findViewById(R.id.btnPlayVideo);
-        Button btnCloseVideo = view.findViewById(R.id.btnCloseVideo);
-
-        // تنظیم ویدیو از پوشه assets
-        //String videoPath = "android.resource://" + getPackageName() + "/" + R.raw.guide_video;
-        // یا از assets:
-         String videoPath = "file:///android_asset/guide_video.mp4";
-
-        videoView.setVideoPath(videoPath);
-
-        // کنترلر پخش
-        MediaController mediaController = new MediaController(this);
-        mediaController.setAnchorView(videoView);
-        videoView.setMediaController(mediaController);
-
-        btnPlayVideo.setOnClickListener(v -> {
-            if (!videoView.isPlaying()) {
-                videoView.start();
-                btnPlayVideo.setText("⏸ توقف");
-            } else {
-                videoView.pause();
-                btnPlayVideo.setText("▶ پخش ویدیو");
-            }
-        });
-
-        videoView.setOnCompletionListener(mp -> {
-            btnPlayVideo.setText("▶ پخش مجدد");
-        });
-
-        btnCloseVideo.setOnClickListener(v -> dialog.dismiss());
-
-        dialog.setOnDismissListener(dialogInterface -> {
-            if (videoView.isPlaying()) {
-                videoView.stopPlayback();
-            }
-        });
-
-        dialog.show();
+    // در متد showManualIpHelp یا هر جای دیگر
+    private void openVideoGuide() {
+        Intent intent = new Intent(MainActivity.this, VideoGuideActivity.class);
+        startActivity(intent);
     }
+
     private void startServerWithIp(String ip) {
         currentIp = ip;
         CURRENT_SERVER_IP = ip;
