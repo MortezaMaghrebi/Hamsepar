@@ -76,7 +76,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
     // UI Components
     private SwipeRefreshLayout swipeRefresh;
     private TextView txtServerStatus, txtServerUrl, txtServerUrlShort, txtLocalIp;
-    private TextView txtUserInfo, txtStats, txtClientsCount, txtUploadProgress, txtLimitWarning;
+    private TextView txtUserInfo, txtStats, txtClientsCount, txtUploadProgress, txtLimitWarning, txtStorageMode;
     private TextView txtPremiumBadge;
     private LinearLayout uploadArea,extractAppsArea ;
     private ProgressBar progressBar;
@@ -106,11 +106,12 @@ public class ServerDashboardActivity extends AppCompatActivity {
     // File picker
     private ActivityResultLauncher<String> filePickerLauncher;
 
+    private StorageManager storageManager;
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_server_dashboard);
-
+        storageManager = new StorageManager(this);
         initViews();
         loadUserInfo();
         loadSettings();
@@ -128,6 +129,13 @@ public class ServerDashboardActivity extends AppCompatActivity {
         setupHttpClient();
         startRefreshing();
         generateQrAndDisplay();
+        updateStorageModeDisplay();
+        // نمایش پیام به کاربر
+        if (storageManager.isUsingPublicDirectory()) {
+            Toast.makeText(this, "📁 فایل‌ها در Documents/Hamsepar قابل مشاهده هستند", Toast.LENGTH_LONG).show();
+        } else {
+            Toast.makeText(this, "📁 فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند", Toast.LENGTH_LONG).show();
+        }
     }
 
     private void initViews() {
@@ -152,6 +160,8 @@ public class ServerDashboardActivity extends AppCompatActivity {
         layoutFilesContainer = findViewById(R.id.layoutFilesContainer);
         recyclerClients.setLayoutManager(new LinearLayoutManager(this));
         extractAppsArea = findViewById(R.id.extractAppsArea);
+        txtStorageMode = findViewById(R.id.txtStorageMode);
+
         extractAppsArea.setOnClickListener(v -> {
             Intent intent = new Intent(ServerDashboardActivity.this, AppExtractorActivity.class);
             startActivity(intent);
@@ -203,7 +213,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
     private String getLocalIpAddress() {
         // این متد باید از MainActivity دریافت شود یا خودش محاسبه کند
         // برای سادگی، یک IP پیش‌فرض برمی‌گردانیم
-        return "192.168.43.1"; // در عمل از MainActivity بگیرید
+        return "0.0.0.0"; // در عمل از MainActivity بگیرید
     }
 
     private void updateServerInfo() {
@@ -923,7 +933,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
 
     // حذف همه فایل‌ها - بدون رمز
     private void deleteAllFiles() {
-        File sharedFolder = getSharedFilesFolder();
+        File sharedFolder =getSharedFilesFolder();
         File[] files = sharedFolder.listFiles();
 
         if (files == null || files.length == 0) {
@@ -1037,13 +1047,24 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 .setNegativeButton("باشه", null)
                 .show();
     }
-
-    private File getSharedFilesFolder() {
-        File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Hamsepar");
-        if (!folder.exists()) {
-            folder.mkdirs();
+    private void updateStorageModeDisplay() {
+        if (txtStorageMode != null && storageManager != null) {
+            if (storageManager.isUsingPublicDirectory()) {
+                txtStorageMode.setText("📁 حالت ذخیره‌سازی: عمومی (Documents/Hamsepar) ✅");
+                txtStorageMode.setBackgroundResource(R.drawable.tv_filesdir_bg);
+                txtStorageMode.setTextColor(0xFF059669);
+                txtStorageMode.setVisibility(View.VISIBLE);
+            } else {
+                txtStorageMode.setText("📁 حالت ذخیره‌سازی: خصوصی (پوشه برنامه) 🔒");
+                txtStorageMode.setBackgroundResource(R.drawable.tv_filesdirprivate_bg);
+                txtStorageMode.setTextColor(0xFFD97706);
+                txtStorageMode.setVisibility(View.VISIBLE);
+            }
         }
-        return folder;
+    }
+    private File getSharedFilesFolder() {
+
+        return storageManager.getStorageDirectory();
     }
 
     @Override

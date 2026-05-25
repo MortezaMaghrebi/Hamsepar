@@ -1,12 +1,27 @@
 <?xml version="1.0" encoding="utf-8"?>
 <paths>
+    <!-- مسیر عمومی Documents/Hamsepar -->
     <external-path
         name="documents"
         path="Documents/Hamsepar/" />
+
+    <!-- مسیر پوشه خصوصی برنامه برای اندروید 10+ -->
     <external-files-path
         name="shared_files"
         path="SharedFiles/" />
+
+    <!-- مسیر پوشه خصوصی برای استخراج APK -->
+    <external-files-path
+        name="extracted_apks"
+        path="ExtractedAPKs/" />
+
+    <!-- مسیر کش -->
     <cache-path
         name="cache"
+        path="/" />
+
+    <!-- مسیر ریشه حافظه داخلی (برای نسخه‌های قدیمی) -->
+    <root-path
+        name="root"
         path="/" />
 </paths>

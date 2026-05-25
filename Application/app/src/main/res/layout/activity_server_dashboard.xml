@@ -325,6 +325,20 @@
                         android:textColor="#6B7280"
                         android:textSize="11sp" />
 
+                    <!-- نمایش وضعیت ذخیره‌سازی -->
+                    <TextView
+                        android:id="@+id/txtStorageMode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:fontFamily="@font/yekan"
+                        android:padding="8dp"
+                        android:background="#F3F4F6"
+                        android:textColor="#374151"
+                        android:textSize="12dp"
+                        android:gravity="center"
+                        android:text="📁 حالت ذخیره‌سازی: در حال بررسی..." />
+
                     <LinearLayout
                         android:id="@+id/layoutFilesContainer"
                         android:layout_width="match_parent"

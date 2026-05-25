@@ -1,6 +1,8 @@
 package com.codestoon.hamsepar;
 
 import android.Manifest;
+import android.content.ClipData;
+import android.content.ClipboardManager;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -20,8 +22,6 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
-import android.widget.EditText;
-import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -64,13 +64,14 @@ import java.util.concurrent.ConcurrentHashMap;
 import fi.iki.elonen.NanoHTTPD;
 
 public class MainActivity extends AppCompatActivity {
+
     private BillingManager billingManager;
     private static final int PORT = 8080;
-    private static final long MAX_FREE_SIZE_BYTES = 500 * 1024 * 1024; // 500 MB
+    private static final long MAX_FREE_SIZE_BYTES = 500 * 1024 * 1024;
     private static final String PREF_UPLOAD_COUNT = "upload_success_count";
     private static final String PREF_RATING_DIALOG_SHOWN = "rating_dialog_shown";
     private static final String PREF_RATING_DIALOG_LAST_TIME = "rating_dialog_last_time";
-    private static final int PROMPT_COMMENT_THRESHOLD = 2; // بعد از 2 آپلود موفق
+    private static final int PROMPT_COMMENT_THRESHOLD = 2;
     public static String CURRENT_SERVER_IP = "";
     private static final ConcurrentHashMap<String, ClientInfo> connectedClients = new ConcurrentHashMap<>();
 
@@ -86,26 +87,51 @@ public class MainActivity extends AppCompatActivity {
         void updateSeen() { this.lastSeen = System.currentTimeMillis(); }
     }
 
-    private TextView txtStatus, txtServerUrl, txtLocalIp, txtClientsCount;
+    // UI Components
+    private TextView txtStatus, txtServerUrl, txtLocalIp, txtClientsCount, txtStorageMode;
     private Button btnStartStop, btnOpenBrowser, btnCopyUrl;
-    private ImageView imgQrCode;
-    private View indicatorStatus;
+    private androidx.appcompat.widget.Toolbar toolbar;
+    private android.widget.ImageView imgQrCode;
+    private android.view.View indicatorStatus;
     private CheckBox chkProtectDelete;
 
+    // Managers
     private FileServer webServer;
     private String currentIp;
     private Handler mainHandler = new Handler(Looper.getMainLooper());
     private SharedPreferences prefs;
     private boolean deleteProtectionEnabled = false;
     private String deletePassword = "";
-    private Button btnRequestPermissions;
-    private boolean hasRequiredPermissions = false;
+    private StorageManager storageManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        initViews();
+        setupListeners();
+
+        // مقداردهی StorageManager
+        storageManager = new StorageManager(this);
+
+        // بررسی دسترسی‌های حافظه با کد خودت
+        takePermissions();
+
+        initBilling();
+
+        prefs = getSharedPreferences("app_security", MODE_PRIVATE);
+        deleteProtectionEnabled = prefs.getBoolean("protect_delete", false);
+        deletePassword = prefs.getString("delete_password", "5949");
+        chkProtectDelete.setChecked(deleteProtectionEnabled);
+
+        chkProtectDelete.setOnCheckedChangeListener((buttonView, isChecked) -> {
+            deleteProtectionEnabled = isChecked;
+            prefs.edit().putBoolean("protect_delete", isChecked).apply();
+        });
+    }
+
+    private void initViews() {
         txtStatus = findViewById(R.id.txtServerStatus);
         txtServerUrl = findViewById(R.id.txtServerUrl);
         txtLocalIp = findViewById(R.id.txtLocalIp);
@@ -116,27 +142,10 @@ public class MainActivity extends AppCompatActivity {
         imgQrCode = findViewById(R.id.imgQrCode);
         indicatorStatus = findViewById(R.id.indicatorStatus);
         chkProtectDelete = findViewById(R.id.chkProtectDelete);
-        btnRequestPermissions = findViewById(R.id.btnRequestPermissions);
+        txtStorageMode = findViewById(R.id.txtStorageMode);
+    }
 
-
-        prefs = getSharedPreferences("app_security", MODE_PRIVATE);
-        deleteProtectionEnabled = prefs.getBoolean("protect_delete", false);
-        deletePassword = prefs.getString("delete_password", "1234");
-        chkProtectDelete.setChecked(deleteProtectionEnabled);
-
-        chkProtectDelete.setOnCheckedChangeListener((buttonView, isChecked) -> {
-            deleteProtectionEnabled = isChecked;
-            prefs.edit().putBoolean("protect_delete", isChecked).apply();
-        });
-
-
-        btnStartStop.setEnabled(false);
-        btnStartStop.setAlpha(0.5f);
-        checkPermissionsOnResume();
-
-        btnRequestPermissions.setOnClickListener(v -> {
-            checkAndRequestPermissionsWithExplanation();
-        });
+    private void setupListeners() {
         btnStartStop.setOnClickListener(v -> {
             if (webServer == null) startServer();
             else stopServer();
@@ -154,8 +163,8 @@ public class MainActivity extends AppCompatActivity {
         btnCopyUrl.setOnClickListener(v -> {
             if (webServer != null && currentIp != null) {
                 String url = "http://" + currentIp + ":" + PORT;
-                android.content.ClipboardManager clipboard = (android.content.ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
-                android.content.ClipData clip = android.content.ClipData.newPlainText("Server URL", url);
+                ClipboardManager clipboard = (ClipboardManager) getSystemService(Context.CLIPBOARD_SERVICE);
+                ClipData clip = ClipData.newPlainText("Server URL", url);
                 clipboard.setPrimaryClip(clip);
                 Toast.makeText(this, "لینک کپی شد", Toast.LENGTH_SHORT).show();
             } else {
@@ -164,8 +173,90 @@ public class MainActivity extends AppCompatActivity {
         });
 
         initFooterButtons();
-        initBilling();
     }
+
+    // ==================== FILE PERMISSIONS (کد خودت) ====================
+
+    private void takePermissions() {
+        if (isPermissionGranted()) {
+            updateStorageModeDisplay();
+        } else {
+            showStorageExplanationDialog();
+        }
+    }
+
+    private boolean isPermissionGranted() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            return Environment.isExternalStorageManager();
+        } else {
+            int readExternalStoragePermission = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE);
+            return readExternalStoragePermission == PackageManager.PERMISSION_GRANTED;
+        }
+    }
+
+    private void takePermission() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
+            try {
+                Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                intent.addCategory("android.intent.category.DEFAULT");
+                intent.setData(Uri.parse("package:" + getPackageName()));
+                startActivityForResult(intent, 6100);
+            } catch (Exception e) {
+                Intent intent = new Intent();
+                intent.setAction(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
+                startActivityForResult(intent, 6100);
+            }
+        } else {
+            ActivityCompat.requestPermissions(this, new String[]{Manifest.permission.READ_EXTERNAL_STORAGE, Manifest.permission.WRITE_EXTERNAL_STORAGE}, 6101);
+        }
+    }
+
+    private void showStorageExplanationDialog() {
+        String githubLink = "https://github.com/mortezamaghrebi/Hamsepar";
+
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("🔐 دسترسی به حافظه");
+        builder.setMessage(
+                "📁 برنامه همسپار برای ذخیره فایل‌ها در پوشه‌ای که با فایل منیجر قابل مشاهده باشد، نیاز به دسترسی به حافظه دارد.\n\n" +
+                        "✅ این برنامه **متن‌باز (Open Source)** است و کد آن در گیت‌هاب منتشر شده:\n" +
+                        githubLink + "\n\n" +
+                        "🔒 امنیت برنامه تضمین شده و هیچ دسترسی غیرضروری ندارد.\n\n" +
+                        "🔓 اگر به برنامه **اطمینان دارید**، گزینه «دسترسی کامل» را انتخاب کنید تا فایل‌ها در پوشه Documents/Hamsepar ذخیره شوند.\n\n" +
+                        "🛡️ اگر **اطمینان ندارید**، گزینه «دسترسی محدود» را انتخاب کنید. برنامه همچنان کار می‌کند ولی فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند (با فایل منیجر معمولی قابل مشاهده نیستند)."
+        );
+        builder.setPositiveButton("✅ دسترسی کامل (توصیه شده)", (dialog, which) -> {
+            takePermission();
+        });
+        builder.setNeutralButton("🛡️ دسترسی محدود", (dialog, which) -> {
+            storageManager.setStorageMode(StorageManager.MODE_PRIVATE_ACCESS);
+            storageManager.setFullAccessGranted(false);
+            updateStorageModeDisplay();
+            Toast.makeText(this, "📁 فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند", Toast.LENGTH_LONG).show();
+        });
+        builder.setNegativeButton("❌ بعداً", (dialog, which) -> {
+            Toast.makeText(this, "برای استفاده از برنامه بعداً دسترسی را فعال کنید", Toast.LENGTH_LONG).show();
+        });
+        builder.setCancelable(false);
+        builder.show();
+    }
+
+    private void updateStorageModeDisplay() {
+        if (txtStorageMode != null && storageManager != null) {
+            if (storageManager.isUsingPublicDirectory()) {
+                txtStorageMode.setText("📁 حالت ذخیره‌سازی: عمومی (Documents/Hamsepar) ✅");
+                txtStorageMode.setBackgroundResource(R.drawable.tv_filesdir_bg);
+                txtStorageMode.setTextColor(0xFF059669);
+                txtStorageMode.setVisibility(View.VISIBLE);
+            } else {
+                txtStorageMode.setText("📁 حالت ذخیره‌سازی: خصوصی (پوشه برنامه) 🔒");
+                txtStorageMode.setBackgroundResource(R.drawable.tv_filesdirprivate_bg);
+                txtStorageMode.setTextColor(0xFFD97706);
+                txtStorageMode.setVisibility(View.VISIBLE);
+            }
+        }
+    }
+
+    // ==================== بقیه کدها ====================
 
     private void initBilling() {
         billingManager = BillingManager.getInstance(this);
@@ -174,17 +265,13 @@ public class MainActivity extends AppCompatActivity {
 
     private void showRatingDialog() {
         if (isFinishing() || isDestroyed()) return;
-
-        // بررسی اگر قبلاً دیالوگ نمایش داده شده
         if (prefs.getBoolean(PREF_RATING_DIALOG_SHOWN, false)) return;
 
-        // بررسی زمان آخرین نمایش دیالوگ - اگر کمتر از 24 ساعت گذشته باشد، نمایش نده
         long lastDialogTime = prefs.getLong(PREF_RATING_DIALOG_LAST_TIME, 0);
         long currentTime = System.currentTimeMillis();
-        long twentyFourHoursInMillis = 24 * 60 * 60 * 1000; // 24 ساعت
+        long twentyFourHoursInMillis = 24 * 60 * 60 * 1000;
 
         if (lastDialogTime > 0 && (currentTime - lastDialogTime) < twentyFourHoursInMillis) {
-            // کمتر از 24 ساعت گذشته، دیالوگ را نشان نده
             return;
         }
 
@@ -194,14 +281,12 @@ public class MainActivity extends AppCompatActivity {
                 .setPositiveButton("👍 بله، نظر میدم", (dialog, which) -> {
                     try {
                         StoreIntents.openStoreForComment(MainActivity.this);
-                        // بعد از کلیک روی نظر، دیگه دیالوگ رو نشون نده (برای همیشه)
                         prefs.edit().putBoolean(PREF_RATING_DIALOG_SHOWN, true).apply();
                     } catch (Exception e) {
                         Toast.makeText(MainActivity.this, "خطا در باز کردن بازار", Toast.LENGTH_SHORT).show();
                     }
                 })
                 .setNegativeButton("🙏 بعداً یادآوری کن", (dialog, which) -> {
-                    // ذخیره زمان حال برای یادآوری بعد از 24 ساعت
                     prefs.edit().putLong(PREF_RATING_DIALOG_LAST_TIME, System.currentTimeMillis()).apply();
                 })
                 .setCancelable(true)
@@ -213,7 +298,6 @@ public class MainActivity extends AppCompatActivity {
         count++;
         prefs.edit().putInt(PREF_UPLOAD_COUNT, count).apply();
 
-        // بعد از رسیدن به آستانه، دیالوگ نظر را نشان بده (فقط برای کاربران غیر پریمیوم)
         if (count >= PROMPT_COMMENT_THRESHOLD && billingManager != null && !billingManager.isPremiumActivated()) {
             showRatingDialog();
         }
@@ -222,7 +306,6 @@ public class MainActivity extends AppCompatActivity {
     public void restartServerAfterPurchase() {
         if (webServer != null) {
             stopServer();
-            // کمی تاخیر برای بسته شدن کامل سوکت
             new Handler(Looper.getMainLooper()).postDelayed(this::startServer, 500);
         }
     }
@@ -318,7 +401,6 @@ public class MainActivity extends AppCompatActivity {
         });
 
         btnCancel.setOnClickListener(v -> dialog.dismiss());
-
         dialog.show();
     }
 
@@ -334,57 +416,7 @@ public class MainActivity extends AppCompatActivity {
             Toast.makeText(this, "ابتدا سرور را روشن کنید.", Toast.LENGTH_SHORT).show();
         }
     }
-    private void openBrowser2() {
-        if (webServer != null && currentIp != null) {
-            String url = "http://" + currentIp + ":" + PORT;
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            startActivity(intent);
-        } else if (currentIp != null) {
-            // سرور خاموش است ولی آی‌پی وجود دارد
-            String url = "http://" + currentIp + ":" + PORT;
-            Intent intent = new Intent(Intent.ACTION_VIEW, Uri.parse(url));
-            startActivity(intent);
-            Toast.makeText(this, "سرور خاموش است. برای اتصال، ابتدا سرور را روشن کنید.", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, "ابتدا سرور را روشن کنید.", Toast.LENGTH_SHORT).show();
-        }
-    }
-    private void checkPermissions() {
-        String[] permissions = {
-                Manifest.permission.INTERNET,
-                Manifest.permission.ACCESS_WIFI_STATE,
-                Manifest.permission.ACCESS_NETWORK_STATE,
-                Manifest.permission.WRITE_EXTERNAL_STORAGE,
-                Manifest.permission.READ_EXTERNAL_STORAGE
-        };
-        List<String> need = new ArrayList<>();
-        for (String p : permissions) {
-            if (ContextCompat.checkSelfPermission(this, p) != PackageManager.PERMISSION_GRANTED)
-                need.add(p);
-        }
-        if (!need.isEmpty()) {
-            ActivityCompat.requestPermissions(this, need.toArray(new String[0]), 100);
-        }
-    }
 
-    private void requestStoragePermission() {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            if (!Environment.isExternalStorageManager()) {
-                try {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                    intent.addCategory("android.intent.category.DEFAULT");
-                    intent.setData(Uri.parse(String.format("package:%s", getPackageName())));
-                    startActivityForResult(intent, 101);
-                } catch (Exception e) {
-                    Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                    startActivityForResult(intent, 101);
-                }
-            }
-        } else {
-            ActivityCompat.requestPermissions(this,
-                    new String[]{Manifest.permission.WRITE_EXTERNAL_STORAGE}, 102);
-        }
-    }
     private List<String> getAllLocalIps() {
         List<String> ips = new ArrayList<>();
         try {
@@ -432,7 +464,6 @@ public class MainActivity extends AppCompatActivity {
 
     AlertDialog ip_dialog;
     private void chooseIpFromList(List<String> ips) {
-        // بررسی نوع شبکه برای هر IP
         List<IpInfo> ipInfoList = new ArrayList<>();
         for (String ip : ips) {
             ipInfoList.add(new IpInfo(ip, detectIpType(ip), getIpIcon(ip)));
@@ -453,7 +484,6 @@ public class MainActivity extends AppCompatActivity {
                 .setView(dialogView)
                 .setNegativeButton("راهنما", (d, w) -> showManualIpHelp())
                 .setPositiveButton("اتصال خودکار", (d, w) -> {
-                    // انتخاب بهترین IP
                     String selectedIp = null;
                     for (IpInfo info : ipInfoList) {
                         if (info.type.contains("هات‌اسپات") || info.type.contains("وای‌فای")) {
@@ -468,7 +498,6 @@ public class MainActivity extends AppCompatActivity {
                         currentIp = selectedIp;
                         startServerWithIp(currentIp);
                     }
-
                 })
                 .create();
         ip_dialog.show();
@@ -485,10 +514,8 @@ public class MainActivity extends AppCompatActivity {
         return "📡";
     }
 
-
     private String detectIpType(String ip) {
         try {
-            // بررسی از طریق NetworkInterface
             Enumeration<NetworkInterface> interfaces = NetworkInterface.getNetworkInterfaces();
             while (interfaces.hasMoreElements()) {
                 NetworkInterface iface = interfaces.nextElement();
@@ -497,8 +524,6 @@ public class MainActivity extends AppCompatActivity {
                     InetAddress addr = addresses.nextElement();
                     if (addr.getHostAddress().equals(ip)) {
                         String ifaceName = iface.getDisplayName().toLowerCase();
-
-                        // تشخیص نوع شبکه
                         if (ifaceName.contains("wlan") || ifaceName.contains("wifi")) {
                             return "📶 وای‌فای (WiFi) - مناسب برای اشتراک‌گذاری";
                         } else if (ifaceName.contains("p2p") || ifaceName.contains("softap")) {
@@ -523,7 +548,6 @@ public class MainActivity extends AppCompatActivity {
             e.printStackTrace();
         }
 
-        // Fallback با بررسی IP
         if (ip.startsWith("192.168.") || ip.startsWith("10.") || ip.startsWith("172.")) {
             return "🌐 شبکه محلی (LAN) - مناسب برای اشتراک‌گذاری";
         } else if (ip.startsWith("169.254.")) {
@@ -533,7 +557,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-    // کلاس کمکی برای اطلاعات IP
     private static class IpInfo {
         String ip;
         String type;
@@ -549,7 +572,6 @@ public class MainActivity extends AppCompatActivity {
         void onSelected(IpInfo ipInfo);
     }
 
-    // آداپتور برای RecyclerView
     private class IpSelectorAdapter extends RecyclerView.Adapter<IpSelectorAdapter.ViewHolder> {
         private List<IpInfo> ipList;
         private OnIpSelectedListener listener;
@@ -615,22 +637,7 @@ public class MainActivity extends AppCompatActivity {
         generateQrCode(url);
 
         try {
-            // تغییر مسیر به پوشه Documents در حافظه داخلی
-            File storageDir = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Hamsepar");
-
-            // اگر پوشه وجود ندارد، ایجاد کن
-            if (!storageDir.exists()) {
-                storageDir.mkdirs();
-            }
-
-            // برای نسخه‌های جدید اندروید، نیاز به مجوز خاص است
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                // اندروید 11+ نیاز به مجوز خاص دارد، اما با Environment.DIRECTORY_DOCUMENTS کار می‌کند
-                if (!storageDir.exists()) {
-                    storageDir.mkdirs();
-                }
-            }
-
+            File storageDir = storageManager.getStorageDirectory();
             boolean isUserPremium = (billingManager != null && billingManager.isPremiumActivated());
             webServer = new FileServer(PORT, storageDir, deleteProtectionEnabled, deletePassword, currentIp, isUserPremium);
             webServer.start(NanoHTTPD.SOCKET_READ_TIMEOUT, false);
@@ -639,7 +646,11 @@ public class MainActivity extends AppCompatActivity {
             openBrowser();
             mainHandler.postDelayed(clientUpdater, 2000);
 
-            Toast.makeText(this, "فایل‌ها در پوشه Documents/Hamsepar ذخیره می‌شوند", Toast.LENGTH_LONG).show();
+            String message = storageManager.isUsingPublicDirectory() ?
+                    "📁 فایل‌ها در پوشه Documents/Hamsepar ذخیره می‌شوند" :
+                    "📁 فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند (با فایل منیجر قابل مشاهده نیست)";
+            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+
         } catch (IOException e) {
             e.printStackTrace();
             Toast.makeText(this, "خطا در شروع سرور", Toast.LENGTH_SHORT).show();
@@ -708,212 +719,58 @@ public class MainActivity extends AppCompatActivity {
         }
     };
 
-    private void checkAndRequestPermissionsWithExplanation() {
-        // بررسی مجوزها
-        boolean hasInternet = ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
-        boolean hasWifiState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED;
-        boolean hasNetworkState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED;
-        boolean hasWriteStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        boolean hasReadStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-
-        // برای اندروید 11+ بررسی دسترسی به پوشه عمومی
-        boolean hasPublicAccess = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            hasPublicAccess = Environment.isExternalStorageManager();
-        }
-
-        if (hasInternet && hasWifiState && hasNetworkState && hasWriteStorage && hasReadStorage && hasPublicAccess) {
-            // همه مجوزها قبلاً گرفته شده
-            hasRequiredPermissions = true;
-            btnStartStop.setEnabled(true);
-            btnStartStop.setAlpha(1f);
-            btnRequestPermissions.setVisibility(View.GONE);
-            Toast.makeText(this, "✅ همه دسترسی‌ها فعال هستند. می‌توانید سرور را روشن کنید.", Toast.LENGTH_SHORT).show();
-            return;
-        }
-
-        // نمایش دیالوگ توضیحی
-        showPermissionsExplanationDialog();
-    }
-
-    private void showPermissionsExplanationDialog() {
-        View dialogView = LayoutInflater.from(this).inflate(R.layout.dialog_permission_explanation, null);
-
-        AlertDialog dialog = new AlertDialog.Builder(this)
-                .setView(dialogView)
-                .setCancelable(false)
-                .create();
-
-        TextView txtTitle = dialogView.findViewById(R.id.txtDialogTitle);
-        TextView txtMessage = dialogView.findViewById(R.id.txtDialogMessage);
-        Button btnAccept = dialogView.findViewById(R.id.btnAccept);
-        Button btnCancel = dialogView.findViewById(R.id.btnCancel);
-
-        txtTitle.setText("🔐 دسترسی‌های لازم");
-        txtMessage.setText("برای اینکه همسپار بتواند درست کار کند، به دسترسی‌های زیر نیاز داریم:\n\n" +
-                "🌐 اینترنت - برای برقراری ارتباط بین دستگاه‌ها\n" +
-                "📁 حافظه - برای ذخیره و اشتراک‌گذاری فایل‌ها\n" +
-                "📡 وای‌فای - برای پیدا کردن دستگاه‌های متصل\n\n" +
-                "✅ این دسترسی‌ها فقط برای عملکرد برنامه استفاده می‌شوند\n" +
-                "✅ فایل‌های شما خصوصی می‌مانند\n" +
-                "✅ شما همیشه می‌توانید دسترسی‌ها را از تنظیمات لغو کنید");
-
-        btnAccept.setText("👍 قبول می‌کنم");
-        btnCancel.setText("🙅 بعداً");
-
-        btnAccept.setOnClickListener(v -> {
-            dialog.dismiss();
-            requestAllPermissions();
-        });
-
-        btnCancel.setOnClickListener(v -> {
-            dialog.dismiss();
-            Toast.makeText(this, "برای استفاده از برنامه باید دسترسی‌ها را قبول کنید", Toast.LENGTH_LONG).show();
-        });
-
-        dialog.show();
-    }
-
-    private void requestAllPermissions() {
-        List<String> permissionsNeeded = new ArrayList<>();
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.INTERNET);
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.ACCESS_WIFI_STATE);
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.ACCESS_NETWORK_STATE);
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.WRITE_EXTERNAL_STORAGE);
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            permissionsNeeded.add(Manifest.permission.READ_EXTERNAL_STORAGE);
-        }
-
-        if (!permissionsNeeded.isEmpty()) {
-            ActivityCompat.requestPermissions(this, permissionsNeeded.toArray(new String[0]), 100);
-        }
-
-        // برای اندروید 11+ درخواست دسترسی به پوشه عمومی
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R && !Environment.isExternalStorageManager()) {
-            requestAllFilesAccess();
-        }
-    }
-
-    private void requestAllFilesAccess() {
-        new AlertDialog.Builder(this)
-                .setTitle("📁 دسترسی به پوشه عمومی")
-                .setMessage("برای اینکه فایل‌های شما در پوشه Documents/Hamsepar ذخیره شوند و بتوانید با فایل منیجر گوشی آنها را ببینید، نیاز به دسترسی داریم.\n\n"
-                        + "✅ فقط به پوشه همسپار دسترسی خواهیم داشت\n"
-                        + "✅ فایل‌های شخصی شما دستکاری نمی‌شوند\n"
-                        + "✅ شما همیشه می‌توانید این دسترسی را لغو کنید")
-                .setPositiveButton("🗂️ اجازه دسترسی", (dialog, which) -> {
-                    try {
-                        Intent intent = new Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION);
-                        intent.setData(Uri.parse("package:" + getPackageName()));
-                        startActivityForResult(intent, 101);
-                    } catch (Exception e) {
-                        Intent intent = new Intent(Settings.ACTION_MANAGE_ALL_FILES_ACCESS_PERMISSION);
-                        startActivityForResult(intent, 101);
-                    }
-                })
-                .setNegativeButton("بعداً", null)
-                .show();
-    }
-
     @Override
     public void onRequestPermissionsResult(int requestCode, @NonNull String[] permissions, @NonNull int[] grantResults) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults);
-        if (requestCode == 100) {
-            checkPermissionsResult();
+
+        switch (requestCode) {
+            case 6101: { // FOR FILE PERMISSION (اندروید 10 و پایین‌تر)
+                if (grantResults.length > 0) {
+                    boolean readExternalStorage = grantResults[0] == PackageManager.PERMISSION_GRANTED;
+                    if (readExternalStorage) {
+                        storageManager.setStorageMode(StorageManager.MODE_FULL_ACCESS);
+                        storageManager.setFullAccessGranted(true);
+                        updateStorageModeDisplay();
+                        Toast.makeText(this, "✅ دسترسی به حافظه داده شد", Toast.LENGTH_SHORT).show();
+                    } else {
+                        storageManager.setStorageMode(StorageManager.MODE_PRIVATE_ACCESS);
+                        storageManager.setFullAccessGranted(false);
+                        updateStorageModeDisplay();
+                        Toast.makeText(this, "⚠️ برنامه با دسترسی محدود ادامه می‌دهد", Toast.LENGTH_LONG).show();
+                    }
+                }
+                break;
+            }
         }
     }
 
     @Override
     protected void onActivityResult(int requestCode, int resultCode, @Nullable Intent data) {
         super.onActivityResult(requestCode, resultCode, data);
-        if (requestCode == 101) {
-            checkPermissionsResult();
-        }
-    }
 
-    private void checkPermissionsResult() {
-        boolean allGranted = true;
-
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) != PackageManager.PERMISSION_GRANTED) {
-            allGranted = false;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) != PackageManager.PERMISSION_GRANTED) {
-            allGranted = false;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) != PackageManager.PERMISSION_GRANTED) {
-            allGranted = false;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            allGranted = false;
-        }
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            allGranted = false;
-        }
-
-        boolean hasPublicAccess = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            hasPublicAccess = Environment.isExternalStorageManager();
-            if (!hasPublicAccess) allGranted = false;
-        }
-
-        if (allGranted) {
-            hasRequiredPermissions = true;
-            btnStartStop.setEnabled(true);
-            btnStartStop.setAlpha(1f);
-            btnRequestPermissions.setVisibility(View.GONE);
-            Toast.makeText(this, "✅ همه دسترسی‌ها فعال شد. حالا می‌توانید سرور را روشن کنید.", Toast.LENGTH_LONG).show();
-        } else {
-            hasRequiredPermissions = false;
-            btnStartStop.setEnabled(false);
-            btnStartStop.setAlpha(0.5f);
-            btnRequestPermissions.setVisibility(View.VISIBLE);
-            Toast.makeText(this, "⚠️ برخی دسترسی‌ها داده نشده. برای روشن کردن سرور به همه دسترسی‌ها نیاز داریم.", Toast.LENGTH_LONG).show();
+        if (requestCode == 6100) {
+            if (isPermissionGranted()) {
+                storageManager.setStorageMode(StorageManager.MODE_FULL_ACCESS);
+                storageManager.setFullAccessGranted(true);
+                updateStorageModeDisplay();
+                Toast.makeText(this, "✅ دسترسی کامل به حافظه داده شد", Toast.LENGTH_SHORT).show();
+            } else {
+                storageManager.setStorageMode(StorageManager.MODE_PRIVATE_ACCESS);
+                storageManager.setFullAccessGranted(false);
+                updateStorageModeDisplay();
+                Toast.makeText(this, "⚠️ دسترسی کامل داده نشد. برنامه با دسترسی محدود ادامه می‌دهد.", Toast.LENGTH_LONG).show();
+            }
         }
     }
 
     @Override
     protected void onResume() {
         super.onResume();
-        // هر بار که برنامه به foreground می‌آید، وضعیت دسترسی‌ها را بررسی کن
-        checkPermissionsOnResume();
+        updateStorageModeDisplay();
     }
 
-    private void checkPermissionsOnResume() {
-        boolean hasInternet = ContextCompat.checkSelfPermission(this, Manifest.permission.INTERNET) == PackageManager.PERMISSION_GRANTED;
-        boolean hasWifiState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_WIFI_STATE) == PackageManager.PERMISSION_GRANTED;
-        boolean hasNetworkState = ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_NETWORK_STATE) == PackageManager.PERMISSION_GRANTED;
-        boolean hasWriteStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.WRITE_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
-        boolean hasReadStorage = ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED;
+    // ==================== کلاس سرور داخلی ====================
 
-        boolean hasPublicAccess = true;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-            hasPublicAccess = Environment.isExternalStorageManager();
-        }
-
-        boolean allGranted = hasInternet && hasWifiState && hasNetworkState && hasWriteStorage && hasReadStorage && hasPublicAccess;
-
-        if (allGranted) {
-            hasRequiredPermissions = true;
-            btnStartStop.setEnabled(true);
-            btnStartStop.setAlpha(1f);
-            btnRequestPermissions.setVisibility(View.GONE);
-        } else {
-            hasRequiredPermissions = false;
-            btnStartStop.setEnabled(false);
-            btnStartStop.setAlpha(0.5f);
-            btnRequestPermissions.setVisibility(View.VISIBLE);
-        }
-    }
-    // ==================== کلاس سرور ====================
     private class FileServer extends NanoHTTPD {
         private final File rootDir;
         private final boolean protectDelete;
@@ -1007,7 +864,6 @@ public class MainActivity extends AppCompatActivity {
                     if (tempFilePath != null) {
                         File tempFile = new File(tempFilePath);
 
-                        // بررسی حجم فایل برای کاربران غیر پریمیوم
                         if (!isPremium && tempFile.length() > MAX_FREE_SIZE_BYTES) {
                             tempFile.delete();
                             return newFixedLengthResponse(Response.Status.FORBIDDEN, "application/json",
@@ -1019,7 +875,6 @@ public class MainActivity extends AppCompatActivity {
                             originalFileName = tempFile.getName();
                         File destFile = new File(rootDir, originalFileName);
                         if (tempFile.renameTo(destFile)) {
-                            // افزایش شمارنده آپلود موفق
                             runOnUiThread(() -> incrementUploadCounter());
                             return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
                         } else {
@@ -1030,7 +885,6 @@ public class MainActivity extends AppCompatActivity {
                                 while ((length = fis.read(buffer)) > 0) fos.write(buffer, 0, length);
                             }
                             tempFile.delete();
-                            // افزایش شمارنده آپلود موفق
                             runOnUiThread(() -> incrementUploadCounter());
                             return newFixedLengthResponse(Response.Status.OK, "application/json", "{\"success\":true}");
                         }
@@ -1042,20 +896,16 @@ public class MainActivity extends AppCompatActivity {
             }
 
             if ("/delete".equals(uri) && Method.POST.equals(session.getMethod())) {
-                // پشتیبانی از هر دو نوع ارسال داده (FormData و URL-encoded)
                 Map<String, String> params2 = session.getParms();
                 String fileName = params2.get("fileName");
 
-                // اگر fileName از طریق پارامترهای عادی نیامد، از body بخوان
                 if (fileName == null || fileName.isEmpty()) {
                     try {
                         Map<String, String> files = new HashMap<>();
                         session.parseBody(files);
-                        // بررسی در پارامترهای body
                         if (files.containsKey("fileName")) {
                             fileName = files.get("fileName");
                         }
-                        // بررسی در session parameters بعد از parseBody
                         Map<String, String> bodyParams = session.getParms();
                         if (fileName == null && bodyParams.containsKey("fileName")) {
                             fileName = bodyParams.get("fileName");
@@ -1117,13 +967,11 @@ public class MainActivity extends AppCompatActivity {
                         storeDisplayName = "مایکت";
                         storeColor = "#3b82f6";
                     } else {
-                        // پیش‌فرض بازار
                         storeLink = "https://cafebazaar.ir/app/" + packageName;
                         storeDisplayName = "بازار";
                         storeColor = "#10b981";
                     }
 
-                    // جایگزینی مقادیر در HTML (آیکون دانلود برای هر دو)
                     html = html.replace("{{STORE_LINK}}", storeLink);
                     html = html.replace("{{STORE_NAME}}", storeDisplayName);
                     html = html.replace("{{STORE_COLOR}}", storeColor);
@@ -1133,8 +981,6 @@ public class MainActivity extends AppCompatActivity {
                     return newFixedLengthResponse(Response.Status.INTERNAL_ERROR, "text/plain", "خطا در بارگذاری صفحه");
                 }
             }
-
-
 
             return newFixedLengthResponse(Response.Status.NOT_FOUND, "text/plain", "404 Not Found");
         }
@@ -1211,6 +1057,11 @@ public class MainActivity extends AppCompatActivity {
                 return null;
             }
         }
+    }
 
+    @Override
+    public boolean onSupportNavigateUp() {
+        finish();
+        return true;
     }
 }

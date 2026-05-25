@@ -25,7 +25,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import com.google.android.material.button.MaterialButton;
 import com.google.android.material.tabs.TabLayout;
-import com.google.android.material.tabs.TabLayoutMediator;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -40,13 +39,12 @@ public class AppExtractorActivity extends AppCompatActivity {
     private RecyclerView recyclerApps;
     private MaterialButton btnExtract;
     private EditText edtSearch;
-    private TextView  txtSelectedCount, btnSelectAll, btnDeselectAll;
+    private TextView txtSelectedCount, btnSelectAll, btnDeselectAll;
     private FrameLayout loadingLayout;
     private LinearLayout progressLayout;
     private ProgressBar progressBar;
     private TextView txtProgress;
     private TabLayout tabLayout;
-    private TextView toolbar;
 
     private ImageView btnClearSearch;
     private AppListAdapter adapter;
@@ -55,20 +53,22 @@ public class AppExtractorActivity extends AppCompatActivity {
     private List<AppItem> allApps = new ArrayList<>();
     private List<AppItem> userApps = new ArrayList<>();
     private List<AppItem> systemApps = new ArrayList<>();
-    private int currentTab = 0; // 0 = کاربر, 1 = سیستمی
+    private int currentTab = 0;
+
+    private StorageManager storageManager;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_app_extractor);
 
+        storageManager = new StorageManager(this);
         initViews();
         setupListeners();
         loadInstalledApps();
     }
 
     private void initViews() {
-        // Toolbar
         androidx.appcompat.widget.Toolbar toolbar = findViewById(R.id.toolbar);
         setSupportActionBar(toolbar);
         getSupportActionBar().setDisplayHomeAsUpEnabled(true);
@@ -186,7 +186,6 @@ public class AppExtractorActivity extends AppCompatActivity {
                     }
                 }
 
-                // مرتب‌سازی
                 userApps.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
                 systemApps.sort((a, b) -> a.getAppName().compareToIgnoreCase(b.getAppName()));
 
@@ -199,7 +198,6 @@ public class AppExtractorActivity extends AppCompatActivity {
                 recyclerApps.setVisibility(View.VISIBLE);
                 updateDisplayedApps();
 
-                // تنظیم متن تب‌ها با تعداد
                 TabLayout.Tab userTab = tabLayout.getTabAt(0);
                 TabLayout.Tab systemTab = tabLayout.getTabAt(1);
                 if (userTab != null) userTab.setText("📱 کاربر (" + userApps.size() + ")");
@@ -218,7 +216,7 @@ public class AppExtractorActivity extends AppCompatActivity {
             return;
         }
 
-        File destFolder = getSharedFilesFolder();
+        File destFolder = storageManager.getStorageDirectory();
         if (!destFolder.exists()) {
             destFolder.mkdirs();
         }
@@ -266,7 +264,7 @@ public class AppExtractorActivity extends AppCompatActivity {
                 edtSearch.setEnabled(true);
                 btnExtract.setText("📦 استخراج APK");
 
-                String message = "✅ " + finalSuccessCount + " برنامه با موفقیت استخراج شد.\n📁 مسیر: Documents/Hamsepar";
+                String message = "✅ " + finalSuccessCount + " برنامه با موفقیت استخراج شد.\n📁 مسیر: " + destFolder.getAbsolutePath();
                 if (finalFailCount > 0) {
                     message += "\n\n❌ خطا در " + finalFailCount + " برنامه:\n" + String.join("\n", finalFailedApps);
                 }
@@ -284,11 +282,9 @@ public class AppExtractorActivity extends AppCompatActivity {
         File sourceFile = new File(app.getSourceDir());
         if (!sourceFile.exists()) return false;
 
-        // گرفتن نام کوتاه از package name
         String packageName = app.getPackageName();
         String shortName = getShortAppName(packageName);
 
-        // نام فایل: فقط نام کوتاه برنامه
         String destFileName = shortName + ".apk";
         File destFile = new File(destFolder, destFileName);
 
@@ -309,16 +305,9 @@ public class AppExtractorActivity extends AppCompatActivity {
     }
 
     private String getShortAppName(String packageName) {
-        // استخراج نام کوتاه از package name
-        // com.whatsapp -> whatsapp
-        // com.instagram.android -> instagram
-        // ir.market.android -> market
-        // com.google.android.youtube -> youtube
-
         String[] parts = packageName.split("\\.");
         if (parts.length >= 2) {
             String lastPart = parts[parts.length - 1];
-            // اگر آخرین قسمت "android" یا "app" بود، یکی مانده به آخر را بگیر
             if (lastPart.equalsIgnoreCase("android") || lastPart.equalsIgnoreCase("app")) {
                 if (parts.length >= 3) {
                     return parts[parts.length - 2];
@@ -334,12 +323,6 @@ public class AppExtractorActivity extends AppCompatActivity {
              FileChannel destChannel = new FileOutputStream(dest).getChannel()) {
             destChannel.transferFrom(sourceChannel, 0, sourceChannel.size());
         }
-    }
-
-    private File getSharedFilesFolder() {
-        File folder = new File(Environment.getExternalStoragePublicDirectory(Environment.DIRECTORY_DOCUMENTS), "Hamsepar");
-        if (!folder.exists()) folder.mkdirs();
-        return folder;
     }
 
     @Override

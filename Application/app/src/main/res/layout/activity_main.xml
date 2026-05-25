@@ -38,6 +38,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="همسپار"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#1F2937"
                         android:textSize="28sp"
                         android:textStyle="bold" />
@@ -46,6 +47,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="اشتراک‌گذاری فایل بدون اینترنت"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#6B7280"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -57,7 +59,7 @@
                     android:background="@drawable/indicator_off" />
             </LinearLayout>
 
-            <!-- آموزش سریع (جایگزین دیالوگ) -->
+            <!-- آموزش سریع -->
             <androidx.cardview.widget.CardView
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
@@ -77,6 +79,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="10dp"
                         android:text="📖 چگونه کار می‌کند؟"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#0284C7"
                         android:textSize="15dp"
                         android:textStyle="bold" />
@@ -109,6 +112,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="وضعیت سرور"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#6B7280"
                         android:textSize="12sp" />
 
@@ -121,18 +125,21 @@
                         android:textColor="#EF4444"
                         android:textSize="24sp"
                         android:textStyle="bold" />
-                    <Button
-                        android:id="@+id/btnRequestPermissions"
-                        android:layout_width="match_parent"
-                        android:layout_height="52dp"
-                        android:layout_marginBottom="12dp"
-                        android:backgroundTint="#F59E0B"
-                        android:text="🔐 فعال کردن دسترسی‌های لازم"
-                        android:textColor="#FFFFFF"
-                        android:textSize="14sp"
-                        android:textStyle="bold"
-                        app:cornerRadius="30dp" />
 
+                    <!-- نمایش وضعیت ذخیره‌سازی -->
+                    <TextView
+                        android:id="@+id/txtStorageMode"
+                        android:layout_width="match_parent"
+                        android:layout_height="wrap_content"
+                        android:layout_marginBottom="12dp"
+                        android:padding="8dp"
+                        android:background="#F3F4F6"
+                        android:textColor="#374151"
+                        android:textSize="12dp"
+                        android:fontFamily="@font/yekan"
+                        android:gravity="center"
+                        android:visibility="gone"
+                        android:text="📁 حالت ذخیره‌سازی: در حال بررسی..." />
 
                     <Button
                         android:id="@+id/btnStartStop"
@@ -149,6 +156,7 @@
                         android:id="@+id/chkProtectDelete"
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
+                        android:layout_marginTop="12dp"
                         android:text="عدم اجازه حذف فایل توسط طرف مقابل"
                         android:textColor="#374151" />
                 </LinearLayout>
@@ -174,6 +182,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="8dp"
                         android:text="🌐 لینک دسترسی"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#374151"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -214,6 +223,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="4dp"
                         android:text="📡 آی‌پی محلی"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#374151"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -238,6 +248,7 @@
                         android:layout_width="wrap_content"
                         android:layout_height="wrap_content"
                         android:text="👥 کاربران آنلاین"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#374151"
                         android:textSize="14sp"
                         android:textStyle="bold" />
@@ -263,19 +274,6 @@
                         android:textStyle="bold"
                         app:cornerRadius="30dp" />
 
-                    <!-- گزینه‌های امنیت -->
-                    <LinearLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content"
-                        android:layout_marginTop="16dp"
-                        android:background="#F9FAFB"
-                        android:orientation="vertical"
-                        android:padding="12dp">
-
-
-
-
-                    </LinearLayout>
                 </LinearLayout>
             </androidx.cardview.widget.CardView>
 
@@ -299,6 +297,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginBottom="12dp"
                         android:text="اسکن QR برای اتصال سریع"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#1F2937"
                         android:textSize="16sp"
                         android:textStyle="bold" />
@@ -315,6 +314,7 @@
                         android:layout_height="wrap_content"
                         android:layout_marginTop="12dp"
                         android:text="دستگاه دیگر این کد را اسکن کند"
+                        android:fontFamily="@font/yekan"
                         android:textColor="#6B7280"
                         android:textSize="12sp" />
                 </LinearLayout>
@@ -323,6 +323,7 @@
         </LinearLayout>
     </ScrollView>
 
+    <!-- فوتر با دکمه‌های پایین -->
     <LinearLayout
         android:id="@+id/llFooterButtons"
         android:layout_width="match_parent"
@@ -335,8 +336,6 @@
         android:padding="12dp"
         android:paddingBottom="16dp">
 
-        <!-- دکمه‌های پایین (طراحی جدید) -->
-        <!-- دکمه‌های پایین (طراحی جدید با دکمه سایر اپ‌ها) -->
         <LinearLayout
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
@@ -347,6 +346,7 @@
             android:padding="4dp"
             android:paddingBottom="16dp">
 
+            <!-- دکمه پنل فایل -->
             <LinearLayout
                 android:id="@+id/browserButton"
                 android:layout_width="0dp"
@@ -383,6 +383,7 @@
 
             </LinearLayout>
 
+            <!-- دکمه نسخه پرو -->
             <LinearLayout
                 android:id="@+id/premiumButton"
                 android:layout_width="0dp"
@@ -419,6 +420,7 @@
 
             </LinearLayout>
 
+            <!-- دکمه نظر دادن -->
             <LinearLayout
                 android:id="@+id/commentButton"
                 android:layout_width="0dp"
@@ -455,7 +457,7 @@
 
             </LinearLayout>
 
-
+            <!-- دکمه سایر اپ‌ها -->
             <LinearLayout
                 android:id="@+id/otherAppsButton"
                 android:layout_width="0dp"
@@ -493,7 +495,6 @@
             </LinearLayout>
 
         </LinearLayout>
-
 
     </LinearLayout>
 </RelativeLayout>
