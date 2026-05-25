@@ -22,8 +22,10 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
+import android.widget.MediaController;
 import android.widget.TextView;
 import android.widget.Toast;
+import android.widget.VideoView;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
@@ -33,8 +35,11 @@ import androidx.core.app.ActivityCompat;
 import androidx.core.content.ContextCompat;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.viewpager2.widget.ViewPager2;
 
 import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.android.material.tabs.TabLayout;
+import com.google.android.material.tabs.TabLayoutMediator;
 import com.google.zxing.BarcodeFormat;
 import com.google.zxing.WriterException;
 import com.google.zxing.common.BitMatrix;
@@ -617,17 +622,173 @@ public class MainActivity extends AppCompatActivity {
 
     private void showManualIpHelp() {
         AlertDialog.Builder builder = new AlertDialog.Builder(this);
-        builder.setTitle("راهنمای پیدا کردن آی‌پی دستی");
-        builder.setMessage("1- به تنظیمات وای‌فای گوشی بروید.\n" +
-                "2- روی شبکه متصل شده ضربه بزنید.\n" +
-                "3- گزینه «جزئیات شبکه» یا «آی‌پی» را ببینید.\n" +
-                "4- اگر نتوانستید آی‌پی را پیدا کنید شما به هات اسپات نفر مقابل وصل شوید و مجددا در همین گوشی شروع سرور را بزنید.\n" +
-                "5- اگر چند آی‌پی میبینید ممکن است همه یا بعضی از آن ها کار کنند، امتحان کنید تا ببینید کدام یک صحیح است.\n" +
-                "⚠️ اطمینان حاصل کنید هات‌اسپات روشن است یا هر دو گوشی به یک وای‌فای وصل هستند.");
-        builder.setPositiveButton("باشه", null);
+        builder.setTitle("🔍 راهنمای پیدا کردن آی‌پی");
+
+        // سوال اول: آیا هات‌اسپات روشن است؟
+        builder.setMessage("⚠️ قبل از ادامه، مطمئن شوید:\n\n" +
+                "✅ هات‌اسپات گوشی روشن باشد\n" +
+                "✅ دستگاه دیگر به این هات‌اسپات متصل شده باشد\n" +
+                "✅ یا هر دو دستگاه به یک وای‌فای مشترک متصل باشند\n\n" +
+                "آیا هات‌اسپات را روشن کرده‌اید؟");
+
+        builder.setPositiveButton("✅ بله، روشن است", (dialog, which) -> {
+            // اگر کاربر گفت بله، راهنمای کامل را نشان بده
+            showFullIpHelp();
+        });
+
+        builder.setNegativeButton("❌ نه، بعداً", (dialog, which) -> {
+            Toast.makeText(this, "لطفاً ابتدا هات‌اسپات را روشن کنید و دوباره تلاش کنید", Toast.LENGTH_LONG).show();
+        });
+
+        builder.setNeutralButton("📖 راهنمای ویدیویی", (dialog, which) -> {
+            // باز کردن یک صفحه راهنما یا ویدیو (اختیاری)
+            showVideoGuideDialog();
+            showVisualGuideDialog();
+        });
+
+        builder.setCancelable(false);
         builder.show();
     }
 
+    private void showFullIpHelp() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        builder.setTitle("🔍 راهنمای پیدا کردن آی‌پی");
+
+        String message = "1️⃣ به تنظیمات وای‌فای گوشی بروید.\n\n" +
+                "2️⃣ روی شبکه متصل شده ضربه بزنید.\n\n" +
+                "3️⃣ گزینه «جزئیات شبکه» یا «آی‌پی» را ببینید.\n\n" +
+                "4️⃣ اگر چند آی‌پی می‌بینید، یکی یکی امتحان کنید تا ببینید کدام کار می‌کند.\n\n" +
+                "5️⃣ اگر باز هم پیدا نکردید:\n" +
+                "   • از دستگاه دیگر (گیرنده) هات‌اسپات بدهید\n" +
+                "   • این دستگاه (دهنده) به هات‌اسپات وصل شود\n" +
+                "   • دوباره شروع سرور را بزنید\n\n" +
+                "💡 نکته: معمولاً آی‌پی‌های 192.168.x.x یا 10.x.x.x کار می‌کنند.";
+
+        builder.setMessage(message);
+        builder.setPositiveButton("🙏 متشکرم", null);
+        builder.setNeutralButton("🔄 دوباره تلاش کن", (dialog, which) -> {
+            // بازگشت به صفحه اصلی برای تلاش مجدد
+            startServer();
+        });
+        builder.show();
+    }
+
+    private void showVisualGuideDialog() {
+        List<GuidePagerAdapter.GuideItem> guideItems = new ArrayList<>();
+
+        // صفحه 1 - تنظیمات وای‌فای
+        guideItems.add(new GuidePagerAdapter.GuideItem(
+                "📱⚙️",
+                "📍 مرحله 1: تنظیمات وای‌فای",
+                "به بخش «تنظیمات» گوشی بروید و روی گزینه «وای‌فای» یا «شبکه و اینترنت» ضربه بزنید."
+        ));
+
+        // صفحه 2 - شبکه متصل شده
+        guideItems.add(new GuidePagerAdapter.GuideItem(
+                "📶✅",
+                "📍 مرحله 2: شبکه متصل شده",
+                "روی شبکه وای‌فای یا هات‌اسپاتی که به آن متصل هستید (که معمولاً علامت ✅ دارد) ضربه بزنید."
+        ));
+
+        // صفحه 3 - جزئیات شبکه
+        guideItems.add(new GuidePagerAdapter.GuideItem(
+                "🔍📡",
+                "📍 مرحله 3: جزئیات شبکه",
+                "گزینه «جزئیات شبکه» یا «آی‌پی» را پیدا کنید. آی‌پی نوشته شده (مثلاً 192.168.43.1) را یادداشت کنید."
+        ));
+
+        // صفحه 4 - راهکار جایگزین
+        guideItems.add(new GuidePagerAdapter.GuideItem(
+                "🔄💡",
+                "💡 راهکار جایگزین",
+                "اگر آی‌پی پیدا نکردید:\n• از دستگاه دیگر هات‌اسپات بدهید\n• این دستگاه به آن وصل شود\n• دوباره شروع سرور را بزنید"
+        ));
+
+        // ایجاد دیالوگ
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_visual_guide, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        ViewPager2 viewPager = view.findViewById(R.id.viewPagerGuide);
+        TabLayout tabLayout = view.findViewById(R.id.tabLayoutIndicator);
+        Button btnPrev = view.findViewById(R.id.btnPrev);
+        Button btnNext = view.findViewById(R.id.btnNext);
+
+        GuidePagerAdapter adapter = new GuidePagerAdapter(guideItems);
+        viewPager.setAdapter(adapter);
+
+        new TabLayoutMediator(tabLayout, viewPager, (tab, position) -> {}).attach();
+
+        viewPager.registerOnPageChangeCallback(new ViewPager2.OnPageChangeCallback() {
+            @Override
+            public void onPageSelected(int position) {
+                super.onPageSelected(position);
+                btnPrev.setVisibility(position == 0 ? View.GONE : View.VISIBLE);
+                btnNext.setText(position == adapter.getItemCount() - 1 ? "✅ تمام" : "بعدی ▶");
+            }
+        });
+
+        btnPrev.setOnClickListener(v -> viewPager.setCurrentItem(viewPager.getCurrentItem() - 1));
+        btnNext.setOnClickListener(v -> {
+            if (viewPager.getCurrentItem() == adapter.getItemCount() - 1) {
+                dialog.dismiss();
+            } else {
+                viewPager.setCurrentItem(viewPager.getCurrentItem() + 1);
+            }
+        });
+
+        dialog.show();
+    }
+
+    private void showVideoGuideDialog() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(this);
+        View view = LayoutInflater.from(this).inflate(R.layout.dialog_video_guide, null);
+        builder.setView(view);
+
+        AlertDialog dialog = builder.create();
+
+        VideoView videoView = view.findViewById(R.id.videoView);
+        Button btnPlayVideo = view.findViewById(R.id.btnPlayVideo);
+        Button btnCloseVideo = view.findViewById(R.id.btnCloseVideo);
+
+        // تنظیم ویدیو از پوشه assets
+        //String videoPath = "android.resource://" + getPackageName() + "/" + R.raw.guide_video;
+        // یا از assets:
+         String videoPath = "file:///android_asset/guide_video.mp4";
+
+        videoView.setVideoPath(videoPath);
+
+        // کنترلر پخش
+        MediaController mediaController = new MediaController(this);
+        mediaController.setAnchorView(videoView);
+        videoView.setMediaController(mediaController);
+
+        btnPlayVideo.setOnClickListener(v -> {
+            if (!videoView.isPlaying()) {
+                videoView.start();
+                btnPlayVideo.setText("⏸ توقف");
+            } else {
+                videoView.pause();
+                btnPlayVideo.setText("▶ پخش ویدیو");
+            }
+        });
+
+        videoView.setOnCompletionListener(mp -> {
+            btnPlayVideo.setText("▶ پخش مجدد");
+        });
+
+        btnCloseVideo.setOnClickListener(v -> dialog.dismiss());
+
+        dialog.setOnDismissListener(dialogInterface -> {
+            if (videoView.isPlaying()) {
+                videoView.stopPlayback();
+            }
+        });
+
+        dialog.show();
+    }
     private void startServerWithIp(String ip) {
         currentIp = ip;
         CURRENT_SERVER_IP = ip;

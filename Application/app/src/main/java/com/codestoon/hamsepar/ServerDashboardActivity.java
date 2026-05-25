@@ -130,12 +130,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
         startRefreshing();
         generateQrAndDisplay();
         updateStorageModeDisplay();
-        // نمایش پیام به کاربر
-        if (storageManager.isUsingPublicDirectory()) {
-            Toast.makeText(this, "📁 فایل‌ها در Documents/Hamsepar قابل مشاهده هستند", Toast.LENGTH_LONG).show();
-        } else {
-            Toast.makeText(this, "📁 فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند", Toast.LENGTH_LONG).show();
-        }
+
     }
 
     private void initViews() {
@@ -355,7 +350,7 @@ public class ServerDashboardActivity extends AppCompatActivity {
                 runOnUiThread(() -> {
                     progressBar.setVisibility(View.GONE);
                     txtUploadProgress.setVisibility(View.GONE);
-                    Toast.makeText(this, "✅ فایل با موفقیت در برنامه ذخیره شد\n" + finalDestFile.getName(), Toast.LENGTH_LONG).show();
+                    //Toast.makeText(this, "✅ فایل به اشتراک گذاشته شد\n" + finalDestFile.getName(), Toast.LENGTH_LONG).show();
 
                     // افزایش شمارنده آپلود موفق (اگر نیاز داری)
                     incrementUploadCount();

@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="vertical"
+    android:padding="8dp">
+
+    <!-- به جای ImageView از TextView با ایموجی استفاده کن -->
+    <TextView
+        android:id="@+id/txtIconGuide"
+        android:layout_width="100dp"
+        android:layout_height="100dp"
+        android:layout_gravity="center"
+        android:gravity="center"
+        android:text="📡"
+        android:textSize="48sp"
+        android:background="#F0F4F8"
+        android:padding="16dp"
+        android:layout_marginTop="16dp"
+        />
+
+    <TextView
+        android:id="@+id/txtStepTitle"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="20dp"
+        android:text="عنوان مرحله"
+        android:textColor="#1F2937"
+        android:textSize="15sp"
+        android:textStyle="bold"
+        android:gravity="center"
+        android:layout_gravity="center"
+        android:fontFamily="@font/yekan" />
+
+    <TextView
+        android:id="@+id/txtStepDescription"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="12dp"
+        android:text="توضیحات مرحله"
+        android:textColor="#6B7280"
+        android:textSize="12sp"
+        android:gravity="center"
+        android:lineSpacingExtra="4dp"
+        android:fontFamily="@font/yekan" />
+
+</LinearLayout>

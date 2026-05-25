@@ -1,0 +1,138 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="wrap_content"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:orientation="vertical"
+    android:padding="0dp"
+    android:layoutDirection="rtl"
+    android:background="@drawable/dialog_bg_rounded">
+
+    <!-- عنوان -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center_vertical"
+        android:background="@drawable/gradient_header_bg"
+        android:padding="16dp">
+
+        <TextView
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:text="🎬 ویدیوی آموزشی همسپار"
+            android:textColor="#FFFFFF"
+            android:textSize="16sp"
+            android:textStyle="bold"
+            android:fontFamily="@font/yekan" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="2:30"
+            android:textColor="#FFFFFF"
+            android:textSize="11sp"
+            android:background="#80000000"
+            android:paddingLeft="8dp"
+            android:paddingRight="8dp"
+            android:paddingTop="4dp"
+            android:paddingBottom="4dp"
+            app:cornerRadius="12dp" />
+
+    </LinearLayout>
+
+    <!-- VideoView برای پخش ویدیو -->
+    <VideoView
+        android:id="@+id/videoView"
+        android:layout_width="match_parent"
+        android:layout_height="240dp"
+        android:layout_margin="16dp" />
+
+    <!-- توضیحات -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:text="این ویدیو نحوه استفاده از همسپار را به شما آموزش می‌دهد:"
+        android:textColor="#374151"
+        android:textSize="12sp"
+        android:paddingStart="16dp"
+        android:paddingEnd="16dp"
+        android:paddingBottom="8dp"
+        android:fontFamily="@font/yekan" />
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="vertical"
+        android:padding="16dp"
+        android:paddingTop="0dp">
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✅ روشن کردن هات‌اسپات"
+            android:textColor="#059669"
+            android:textSize="11sp"
+            android:layout_marginBottom="6dp"
+            android:drawableStart="@drawable/ic_check_small"
+            android:drawablePadding="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✅ اتصال دستگاه دیگر به هات‌اسپات"
+            android:textColor="#059669"
+            android:textSize="11sp"
+            android:layout_marginBottom="6dp"
+            android:drawableStart="@drawable/ic_check_small"
+            android:drawablePadding="6dp" />
+
+        <TextView
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="✅ شروع سرور و اشتراک‌گذاری فایل"
+            android:textColor="#059669"
+            android:textSize="11sp"
+            android:layout_marginBottom="6dp"
+            android:drawableStart="@drawable/ic_check_small"
+            android:drawablePadding="6dp" />
+
+    </LinearLayout>
+
+    <!-- دکمه‌ها -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:gravity="center"
+        android:padding="16dp"
+        android:paddingTop="0dp">
+
+        <Button
+            android:id="@+id/btnPlayVideo"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginEnd="8dp"
+            android:backgroundTint="#6366F1"
+            android:text="▶ پخش ویدیو"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            app:cornerRadius="22dp" />
+
+        <Button
+            android:id="@+id/btnCloseVideo"
+            android:layout_width="0dp"
+            android:layout_height="44dp"
+            android:layout_weight="1"
+            android:layout_marginStart="8dp"
+            android:backgroundTint="#9CA3AF"
+            android:text="بستن"
+            android:textColor="#FFFFFF"
+            android:textSize="12sp"
+            app:cornerRadius="22dp" />
+
+    </LinearLayout>
+
+</LinearLayout>
