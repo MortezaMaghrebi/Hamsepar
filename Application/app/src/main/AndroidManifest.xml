@@ -5,11 +5,10 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.ACCESS_WIFI_STATE" />
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> <!-- برای اندروید 10 و پایین‌تر -->
-    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
-    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" /> <!-- برای اندروید 11+ -->
-    <uses-permission
-        android:name="android.permission.MANAGE_EXTERNAL_STORAGE"
-        tools:ignore="ScopedStorage" /> <!-- حذف دسترسی اضافی -->
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.MANAGE_EXTERNAL_STORAGE"/>
+
     <!-- برای خواندن اطلاعات برنامه‌ها -->
     <uses-permission
         android:name="android.permission.QUERY_ALL_PACKAGES"
@@ -31,6 +30,7 @@
         android:usesCleartextTraffic="true">
         <activity
             android:name="VideoGuideActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".AppExtractorActivity"
@@ -38,9 +38,11 @@
             android:screenOrientation="portrait" />
         <activity
             android:name=".ServerDashboardActivity"
+            android:screenOrientation="portrait"
             android:exported="false" />
         <activity
             android:name=".MainActivity"
+            android:screenOrientation="portrait"
             android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

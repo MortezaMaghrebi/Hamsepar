@@ -93,7 +93,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     // UI Components
-    private TextView txtStatus, txtServerUrl, txtLocalIp, txtClientsCount, txtStorageMode;
+    private TextView txtStatus, txtServerUrl, txtLocalIp, txtClientsCount, txtStorageMode,tvVideoGuid;
     private Button btnStartStop, btnOpenBrowser, btnCopyUrl;
     private androidx.appcompat.widget.Toolbar toolbar;
     private android.widget.ImageView imgQrCode;
@@ -148,6 +148,7 @@ public class MainActivity extends AppCompatActivity {
         indicatorStatus = findViewById(R.id.indicatorStatus);
         chkProtectDelete = findViewById(R.id.chkProtectDelete);
         txtStorageMode = findViewById(R.id.txtStorageMode);
+        tvVideoGuid=findViewById(R.id.tvVideoGuid);
     }
 
     private void setupListeners() {
@@ -177,6 +178,13 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        tvVideoGuid.setOnClickListener(new View.OnClickListener() {
+            @Override
+            public void onClick(View view) {
+                Intent intent = new Intent(MainActivity.this,VideoGuideActivity.class);
+                startActivity(intent);
+            }
+        });
         initFooterButtons();
     }
 
@@ -229,7 +237,7 @@ public class MainActivity extends AppCompatActivity {
                         "🔓 اگر به برنامه **اطمینان دارید**، گزینه «دسترسی کامل» را انتخاب کنید تا فایل‌ها در پوشه Documents/Hamsepar ذخیره شوند.\n\n" +
                         "🛡️ اگر **اطمینان ندارید**، گزینه «دسترسی محدود» را انتخاب کنید. برنامه همچنان کار می‌کند ولی فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند (با فایل منیجر معمولی قابل مشاهده نیستند)."
         );
-        builder.setPositiveButton("✅ دسترسی کامل (توصیه شده)", (dialog, which) -> {
+        builder.setPositiveButton("✅ دسترسی کامل", (dialog, which) -> {
             takePermission();
         });
         builder.setNeutralButton("🛡️ دسترسی محدود", (dialog, which) -> {
@@ -237,9 +245,6 @@ public class MainActivity extends AppCompatActivity {
             storageManager.setFullAccessGranted(false);
             updateStorageModeDisplay();
             Toast.makeText(this, "📁 فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند", Toast.LENGTH_LONG).show();
-        });
-        builder.setNegativeButton("❌ بعداً", (dialog, which) -> {
-            Toast.makeText(this, "برای استفاده از برنامه بعداً دسترسی را فعال کنید", Toast.LENGTH_LONG).show();
         });
         builder.setCancelable(false);
         builder.show();
@@ -748,6 +753,7 @@ public class MainActivity extends AppCompatActivity {
         startActivity(intent);
     }
 
+    int errorcount=0;
     private void startServerWithIp(String ip) {
         currentIp = ip;
         CURRENT_SERVER_IP = ip;
@@ -769,11 +775,17 @@ public class MainActivity extends AppCompatActivity {
             String message = storageManager.isUsingPublicDirectory() ?
                     "📁 فایل‌ها در پوشه Documents/Hamsepar ذخیره می‌شوند" :
                     "📁 فایل‌ها در پوشه خصوصی برنامه ذخیره می‌شوند (با فایل منیجر قابل مشاهده نیست)";
-            Toast.makeText(this, message, Toast.LENGTH_LONG).show();
+            //Toast.makeText(this, message, Toast.LENGTH_LONG).show();
 
         } catch (IOException e) {
             e.printStackTrace();
-            Toast.makeText(this, "خطا در شروع سرور", Toast.LENGTH_SHORT).show();
+            errorcount++;
+            Toast.makeText(this, "خطا در شروع سرور"+"\n"+e.getMessage(), Toast.LENGTH_SHORT).show();
+            if(errorcount>2)
+            {
+                storageManager.setStorageMode(StorageManager.MODE_PRIVATE_ACCESS);
+                startServerWithIp(ip);
+            }
         }
     }
 

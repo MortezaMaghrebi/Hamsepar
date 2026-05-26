@@ -5,6 +5,7 @@
     android:layout_height="match_parent"
     android:orientation="vertical"
     android:background="#F8FAFC"
+    android:fitsSystemWindows="true"
     android:layoutDirection="rtl">
 
     <!-- هدر مدرن -->

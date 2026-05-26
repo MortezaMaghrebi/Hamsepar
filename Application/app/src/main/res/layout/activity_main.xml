@@ -5,6 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="#F5F7FA"
+    android:fitsSystemWindows="true"
     android:layoutDirection="rtl">
 
     <ScrollView
@@ -387,6 +388,18 @@
                                 android:lineSpacingExtra="4dp" />
 
                         </LinearLayout>
+                        <TextView
+                            android:layout_width="match_parent"
+                            android:layout_height="wrap_content"
+                            android:text="راهنمای ویدیویی"
+                            android:textSize="12dp"
+                            android:fontFamily="@font/yekan"
+                            android:gravity="center_horizontal"
+                            android:layout_marginTop="10dp"
+                            android:textColor="#6559ff"
+                            android:textStyle="bold"
+                            android:id="@+id/tvVideoGuid"/>
+
 
                     </LinearLayout>
 
